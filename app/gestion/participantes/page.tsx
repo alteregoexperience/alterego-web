@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 type Participant = {
   id: string
@@ -33,7 +34,39 @@ useEffect(() => {
 
   fetchParticipants()
 
+  const channel = supabase
+    .channel("participants-changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "participants",
+      },
+      () => {
+        fetchParticipants()
+      }
+    )
+    .subscribe((status) => {
+    console.log("Realtime status:", status)
+  })
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+
 }, [])
+
+const updatePoints = async (id: string, delta: number) => {
+
+  await fetch("/api/participants/update-points", {
+    method: "POST",
+    body: JSON.stringify({
+      id,
+      delta
+    })
+  })
+}
 
   const filtered = participants.filter(p => {
 
@@ -66,28 +99,51 @@ useEffect(() => {
 
           <div className="space-y-3">
 
-            {filtered.map(p => (
+{filtered.map(p => (
 
-              <div
-                key={p.id}
-                className="flex justify-between items-center border rounded-lg p-4 hover:bg-gray-50 transition"
-              >
+  <div
+    key={p.id}
+    className="flex justify-between items-center border rounded-lg p-4 hover:bg-gray-50 transition"
+  >
 
-                <div>
+    <div className="flex items-center gap-4">
 
-                  <div className="font-medium text-lg">
-                    {p.name}
-                  </div>
+      <div>
 
-                  <div className="text-sm text-gray-500">
-                    @{p.instagram}
-                  </div>
+        <div className="font-medium text-lg">
+          {p.name}
+        </div>
 
-                </div>
+        <div className="text-sm text-gray-500">
+          @{p.instagram}
+        </div>
 
-              </div>
+      </div>
 
-            ))}
+    </div>
+
+    <div className="flex gap-3">
+
+      <Button
+        variant="outline"
+        className="text-red-500 border-red-200 hover:bg-red-50"
+        onClick={() => updatePoints(p.id, -100)}
+      >
+        -100
+      </Button>
+
+      <Button
+        className="bg-green-600 hover:bg-green-700"
+        onClick={() => updatePoints(p.id, 100)}
+      >
+        +100
+      </Button>
+
+    </div>
+
+  </div>
+
+))}
 
           </div>
 
