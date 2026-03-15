@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 import { Participant } from "@/types/Participant";
 
@@ -65,17 +66,26 @@ export default function ParticipantesPage() {
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white">
       <div className="max-w-5xl mx-auto p-4 md:p-10">
         <Card className="shadow-xl bg-zinc-900 border border-zinc-800">
-          <CardHeader className="space-y-4">
-            <CardTitle className="text-xl md:text-2xl text-purple-400">
-              Panel de participantes
-            </CardTitle>
+          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-4 w-full md:w-auto">
+              <CardTitle className="text-xl md:text-2xl text-purple-400">
+                Panel de participantes
+              </CardTitle>
 
-            <Input
-              placeholder="Buscar nombre o instagram..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-md bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500"
-            />
+              <Input
+                placeholder="Buscar nombre o instagram..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full md:max-w-md bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500"
+              />
+            </div>
+
+            <Button
+              onClick={() => router.push("/gestion/nuevo-participante")}
+              className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+            >
+              + Nuevo participante
+            </Button>
           </CardHeader>
 
           <CardContent>
@@ -141,9 +151,12 @@ export default function ParticipantesPage() {
 
         <Button
           onClick={() => router.push("/gestion/nuevo-participante")}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-purple-600 hover:bg-purple-700 text-xl shadow-lg"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-4 rounded-full
+  bg-purple-600 hover:bg-purple-700 text-white shadow-xl
+  border border-purple-500/30"
         >
-          +
+          <Plus size={18} />
+          Nuevo
         </Button>
       </div>
     </div>
