@@ -22,7 +22,13 @@ export async function POST(req: Request) {
         name: String(participant?.name ?? "")
           .trim()
           .replace(/\s+/g, " "),
-        instagram: String(participant?.instagram ?? "").trim(),
+        instagram: (() => {
+          const ig = String(participant?.instagram ?? "")
+            .trim()
+            .replace(/^@+/, "");
+
+          return ig ? `@${ig}` : "";
+        })(),
       }))
       .filter((participant: ParticipantPayload) => participant.name.length > 0);
 

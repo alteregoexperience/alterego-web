@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import { Trophy, Medal } from "lucide-react";
 
 type Participant = {
   id: string;
@@ -13,35 +14,59 @@ type Participant = {
 
 export default function RankingPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [visibleParticipants, setVisibleParticipants] = useState<Participant[]>(
+    [],
+  );
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const top3 = participants.slice(0, 3);
-  const rest = participants.slice(3);
+
+  const calculateVisibleParticipants = (allParticipants: Participant[]) => {
+    if (!gridRef.current) return;
+
+    const rest = allParticipants.slice(3);
+
+    const gridHeight = gridRef.current.clientHeight;
+    const gridWidth = gridRef.current.clientWidth;
+
+    const cardHeight = 72;
+    const gap = 16;
+
+    const rowHeight = cardHeight + gap;
+
+    const rows = Math.floor(gridHeight / rowHeight);
+    const cardsPerRow = Math.floor(gridWidth / 420);
+
+    const maxCards = rows * cardsPerRow;
+
+    setVisibleParticipants(rest.slice(0, maxCards));
+  };
 
   useEffect(() => {
-    const fetchRanking = async () => {
+    const loadRanking = async () => {
       const { data } = await supabase
         .from("participants")
         .select("*")
         .order("points", { ascending: false })
-        .limit(20);
+        .limit(500);
 
-      setParticipants(data ?? []);
+      const participantsData = data ?? [];
+
+      setParticipants(participantsData);
+
+      requestAnimationFrame(() => {
+        calculateVisibleParticipants(participantsData);
+      });
     };
 
-    fetchRanking();
+    loadRanking();
 
     const channel = supabase
       .channel("ranking")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "participants",
-        },
-        () => {
-          fetchRanking();
-        },
+        { event: "*", schema: "public", table: "participants" },
+        () => loadRanking(),
       )
       .subscribe();
 
@@ -50,111 +75,130 @@ export default function RankingPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!gridRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      calculateVisibleParticipants(participants);
+    });
+
+    observer.observe(gridRef.current);
+
+    return () => observer.disconnect();
+  }, [participants]);
+
   return (
-    <div className="relative h-screen bg-gradient-to-b from-black via-[#0f0b1a] to-black text-white font-[var(--font-display)] overflow-hidden flex flex-col">
-      {/* LOGO FONDO */}
+    <div className="relative h-screen bg-gradient-to-b from-black via-[#0f0b1a] to-black text-white overflow-hidden flex flex-col">
+      {/* LUZ HORIZONTAL */}
+      <div className="absolute top-[40%] left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-40 blur-sm" />
+      <div className="absolute top-[40%] left-0 w-full h-[200px] bg-purple-600/10 blur-[120px]" />
+
+      {/* TORTUGA DE FONDO */}
       <img
         src="/tortuga_blanca.png"
-        className="absolute opacity-[0.04] w-[700px] left-1/2 -translate-x-1/2 top-32 pointer-events-none"
+        className="absolute opacity-[0.04] w-[35vw] max-w-[900px] left-1/2 -translate-x-1/2 top-[28vh] pointer-events-none"
       />
 
-      <div className="w-full px-16 py-6 flex flex-col flex-1">
-        {/* HEADER */}
+      {/* HEADER */}
+      <div className="absolute top-6 left-10 flex items-center gap-4">
+        <img src="/tortuga_blanca.png" className="w-12 h-12" />
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent tracking-wide">
+          ALTER EGO
+        </h1>
+      </div>
 
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <img src="/pegatina_tortuga_alterego.png" className="w-10 h-10" />
-
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
-            ALTER EGO
-          </h1>
-        </div>
-
+      <div className="w-full px-16 py-10 flex flex-col flex-1">
         {/* PODIO */}
-
-        <div className="flex justify-center items-end gap-8 mb-6">
-          {/* 2º */}
-
+        <div className="flex justify-center items-end gap-12 mb-10">
+          {/* SEGUNDO */}
           {top3[1] && (
             <motion.div
               layout
-              className="flex flex-col items-center justify-end
-              bg-gradient-to-b from-gray-800 to-gray-900
-              rounded-xl w-44 h-40 p-4 border border-white/10
-              shadow-[0_0_20px_rgba(255,255,255,0.25)]"
+              className="flex flex-col items-center justify-center text-center
+              bg-white/5 backdrop-blur-xl
+              rounded-2xl w-48 h-44 p-5 border border-white/10
+              shadow-[0_0_25px_rgba(255,255,255,0.15)]"
             >
-              <div className="text-xs text-gray-400">#2</div>
-              <div className="text-lg font-semibold text-center">
+              <Medal className="w-8 h-8 text-gray-300 mb-2" />
+              <div className="text-sm text-gray-400">#2</div>
+              <div className="text-lg font-semibold leading-tight break-words max-w-[150px] text-center">
                 {top3[1].name}
               </div>
-              <div className="text-yellow-400 text-2xl font-bold">
+              <div className="text-yellow-400 text-2xl font-bold mt-1">
                 {top3[1].points}
               </div>
             </motion.div>
           )}
 
-          {/* 1º */}
-
+          {/* PRIMERO */}
           {top3[0] && (
             <motion.div
               layout
-              className="flex flex-col items-center justify-end
-              bg-gradient-to-b from-gray-800 to-gray-900
-              rounded-xl w-48 h-48 p-4 border border-white/10
-              shadow-[0_0_40px_rgba(234,179,8,0.45)]"
+              className="flex flex-col items-center justify-center text-center
+              bg-white/5 backdrop-blur-xl
+              rounded-2xl w-52 h-52 p-6 border border-yellow-400/30
+              shadow-[0_0_45px_rgba(234,179,8,0.35)]"
             >
-              <div className="text-xs text-gray-400">#1</div>
-              <div className="text-xl font-semibold text-center">
+              <Trophy className="w-10 h-10 text-yellow-400 mb-2 drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]" />
+              <div className="text-sm text-gray-400">#1</div>
+              <div className="text-xl font-semibold leading-tight break-words max-w-[170px] text-center">
                 {top3[0].name}
               </div>
-              <div className="text-yellow-400 text-3xl font-bold">
+              <div className="text-yellow-400 text-3xl font-bold mt-1">
                 {top3[0].points}
               </div>
             </motion.div>
           )}
 
-          {/* 3º */}
-
+          {/* TERCERO */}
           {top3[2] && (
             <motion.div
               layout
-              className="flex flex-col items-center justify-end
-              bg-gradient-to-b from-gray-800 to-gray-900
-              rounded-xl w-44 h-36 p-4 border border-white/10
-              shadow-[0_0_20px_rgba(180,83,9,0.35)]"
+              className="flex flex-col items-center justify-center text-center
+              bg-white/5 backdrop-blur-xl
+              rounded-2xl w-48 h-40 p-5 border border-white/10
+              shadow-[0_0_25px_rgba(180,83,9,0.25)]"
             >
-              <div className="text-xs text-gray-400">#3</div>
-              <div className="text-lg font-semibold text-center">
+              <Medal className="w-8 h-8 text-amber-600 mb-2" />
+              <div className="text-sm text-gray-400">#3</div>
+              <div className="text-lg font-semibold leading-tight break-words max-w-[150px] text-center">
                 {top3[2].name}
               </div>
-              <div className="text-yellow-400 text-2xl font-bold">
+              <div className="text-yellow-400 text-2xl font-bold mt-1">
                 {top3[2].points}
               </div>
             </motion.div>
           )}
         </div>
 
-        {/* RESTO DEL RANKING */}
-
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-4 flex-1 content-start">
+        {/* GRID DE PARTICIPANTES */}
+        <div
+          ref={gridRef}
+          className="grid grid-cols-[repeat(auto-fit,minmax(420px,420px))] gap-4 flex-1 content-start justify-center"
+        >
           <AnimatePresence>
-            {rest.map((p, index) => (
+            {visibleParticipants.map((p, index) => (
               <motion.div
                 key={p.id}
                 layout
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300 }}
+                transition={{ type: "spring", stiffness: 280 }}
                 className="flex justify-between items-center
-                bg-gray-800/60 backdrop-blur
-                px-5 py-3 rounded-xl border border-white/10"
+                h-[72px]
+                bg-white/[0.04] backdrop-blur-xl
+                px-5 rounded-xl border border-white/10
+                hover:border-purple-400/40 transition"
               >
                 <div className="flex items-center gap-4">
                   <div className="text-gray-400 w-10 text-lg">#{index + 4}</div>
 
                   <div>
-                    <div className="text-base font-medium">{p.name}</div>
+                    <div className="text-[15px] font-medium">{p.name}</div>
 
-                    <div className="text-gray-400 text-xs">@{p.instagram}</div>
+                    {p.instagram && (
+                      <div className="text-gray-400 text-xs">{p.instagram}</div>
+                    )}
                   </div>
                 </div>
 
@@ -162,7 +206,6 @@ export default function RankingPage() {
                   <div className="text-lg font-bold text-yellow-400">
                     {p.points}
                   </div>
-
                   <div className="text-[10px] text-gray-400">PTS</div>
                 </div>
               </motion.div>
