@@ -1,24 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
+
 import {
   parseParticipantsExcel,
   PreviewRow,
   ImportedParticipant,
 } from "@/lib/parseParticipantsExcel";
 
-type ImportSummary = {
-  totalRows: number;
-  rowsWithoutInstagram: number;
-};
+import { Upload, FileSpreadsheet } from "lucide-react";
+
+type ImportSummary = { totalRows: number; rowsWithoutInstagram: number };
 
 export default function ImportarParticipantesPage() {
+  const hasFetched = useRef(false);
   const [dbCount, setDbCount] = useState<number>(0);
   const [isCounting, setIsCounting] = useState<boolean>(true);
 
@@ -26,6 +25,7 @@ export default function ImportarParticipantesPage() {
   const [participantsToImport, setParticipantsToImport] = useState<
     ImportedParticipant[]
   >([]);
+
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
   const [isParsing, setIsParsing] = useState<boolean>(false);
@@ -33,6 +33,9 @@ export default function ImportarParticipantesPage() {
 
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   const canImport = useMemo(() => {
     return participantsToImport.length > 0 && !isImporting;
@@ -59,20 +62,10 @@ export default function ImportarParticipantesPage() {
   };
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     fetchDbCount();
-
-    const channel = supabase
-      .channel("participants-import-count")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "participants" },
-        fetchDbCount,
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const resetPreview = () => {
@@ -81,6 +74,7 @@ export default function ImportarParticipantesPage() {
     setSummary(null);
     setError("");
     setSuccess("");
+    setFileName(null);
   };
 
   const handleFileChange = async (
@@ -88,6 +82,8 @@ export default function ImportarParticipantesPage() {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    setFileName(file.name);
 
     setError("");
     setSuccess("");
@@ -117,6 +113,7 @@ export default function ImportarParticipantesPage() {
     } catch (err) {
       console.error(err);
       resetPreview();
+
       setError(
         err instanceof Error ? err.message : "No se pudo leer el archivo",
       );
@@ -124,6 +121,20 @@ export default function ImportarParticipantesPage() {
       setIsParsing(false);
       event.target.value = "";
     }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const fakeEvent = {
+      target: { files: [file] },
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+    await handleFileChange(fakeEvent);
   };
 
   const handleImport = async () => {
@@ -142,12 +153,8 @@ export default function ImportarParticipantesPage() {
     try {
       const response = await fetch("/api/participants/replace", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          participants: participantsToImport,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participants: participantsToImport }),
       });
 
       const data = await response.json();
@@ -157,12 +164,15 @@ export default function ImportarParticipantesPage() {
       }
 
       setSuccess(
-        `Importación completada. ${data.insertedCount ?? participantsToImport.length} participantes insertados`,
+        `Importación completada. ${
+          data.insertedCount ?? participantsToImport.length
+        } participantes insertados`,
       );
 
       await fetchDbCount();
     } catch (err) {
       console.error(err);
+
       setError(
         err instanceof Error
           ? err.message
@@ -174,96 +184,144 @@ export default function ImportarParticipantesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white">
       <div className="mx-auto max-w-6xl p-8 flex flex-col gap-6">
-        {/* Header */}
+        {/* HEADER */}
+
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
+            <h1 className="text-3xl font-bold text-purple-400">
               Importar participantes
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+
+            <p className="text-sm text-zinc-400 mt-1">
               Carga un Excel para reemplazar la lista completa de participantes
             </p>
           </div>
 
           <div className="text-right">
-            <div className="text-xs text-slate-500">Participantes actuales</div>
-            <div className="text-2xl font-bold">
+            <div className="text-xs text-zinc-500">Participantes actuales</div>
+
+            <div className="text-2xl font-bold text-white">
               {isCounting ? "..." : dbCount}
             </div>
           </div>
         </div>
 
-        {/* Upload */}
-        <Card>
-          <CardContent className="p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-600">
-                Excel con dos columnas: <b>Nombre</b> y <b>Instagram</b>
-              </div>
+        {/* DROPZONE */}
 
-              <Input
+        <Card className="bg-zinc-900 border border-zinc-800 shadow-xl">
+          <CardContent className="p-6 flex flex-col gap-4">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all cursor-pointer
+              ${
+                isDragging
+                  ? "border-purple-500 bg-purple-500/10"
+                  : "border-zinc-700 hover:border-purple-500 hover:bg-zinc-800/40"
+              }
+              p-10`}
+            >
+              <input
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={handleFileChange}
-                className="max-w-xs cursor-pointer"
+                className="absolute inset-0 opacity-0 cursor-pointer"
               />
+
+              <motion.div
+                animate={{ scale: isDragging ? 1.05 : 1 }}
+                className="flex flex-col items-center gap-2 text-center"
+              >
+                <Upload className="w-10 h-10 text-purple-400" />
+
+                {fileName ? (
+                  <>
+                    <p className="text-sm text-zinc-400">
+                      Archivo seleccionado
+                    </p>
+
+                    <p className="text-white font-medium">{fileName}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-zinc-300">
+                      Arrastra tu archivo Excel aquí
+                    </p>
+
+                    <p className="text-xs text-zinc-500">
+                      o haz click para seleccionarlo
+                    </p>
+                  </>
+                )}
+
+                <div className="flex items-center gap-2 text-xs text-zinc-500 mt-2">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  .xlsx / .xls / .csv
+                </div>
+              </motion.div>
             </div>
 
             {isParsing && (
-              <p className="text-sm text-slate-600">Leyendo archivo...</p>
+              <p className="text-sm text-zinc-400">Leyendo archivo...</p>
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-lg">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm px-4 py-3 rounded-lg">
                 {success}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Excel summary */}
+        {/* SUMMARY */}
+
         {summary && (
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex gap-6 text-sm text-slate-600"
+            className="flex gap-6 text-sm text-zinc-400"
           >
             <span>
               Filas detectadas:{" "}
-              <b className="text-slate-900">{summary.totalRows}</b>
+              <b className="text-white">{summary.totalRows}</b>
             </span>
 
             <span>
               Sin instagram:{" "}
-              <b className="text-slate-900">{summary.rowsWithoutInstagram}</b>
+              <b className="text-white">{summary.rowsWithoutInstagram}</b>
             </span>
 
             <span>
               Se insertarán:{" "}
-              <b className="text-slate-900">{participantsToImport.length}</b>
+              <b className="text-white">{participantsToImport.length}</b>
             </span>
           </motion.div>
         )}
 
-        {/* Table preview */}
+        {/* PREVIEW */}
+
         {summary && (
-          <Card>
+          <Card className="bg-zinc-900 border border-zinc-800">
             <CardContent className="p-0">
-              <div className="px-6 py-4 border-b text-sm text-amber-700 bg-amber-50">
+              <div className="px-6 py-4 border-b border-zinc-800 text-sm text-amber-400 bg-amber-500/10">
                 Esta acción reemplazará todos los participantes actuales
               </div>
 
               <div className="max-h-[520px] overflow-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-slate-100 sticky top-0">
+                  <thead className="bg-zinc-900 sticky top-0 border-b border-zinc-800 text-zinc-300">
                     <tr>
                       <th className="px-4 py-3 text-left">Fila</th>
                       <th className="px-4 py-3 text-left">Nombre</th>
@@ -275,27 +333,27 @@ export default function ImportarParticipantesPage() {
                   <tbody>
                     {previewRows.map((row) => {
                       const rowClass = row.errors.length
-                        ? "bg-red-50"
+                        ? "bg-red-500/5"
                         : row.warnings.length
-                          ? "bg-amber-50"
+                          ? "bg-amber-500/5"
                           : "";
 
                       return (
                         <tr
                           key={`${row.rowNumber}-${row.name}-${row.instagram}`}
-                          className={`border-t ${rowClass}`}
+                          className={`border-t border-zinc-800 ${rowClass}`}
                         >
-                          <td className="px-4 py-3 text-slate-500">
+                          <td className="px-4 py-3 text-zinc-500">
                             {row.rowNumber}
                           </td>
 
-                          <td className="px-4 py-3 font-medium">
+                          <td className="px-4 py-3 font-medium text-white">
                             {row.name || "-"}
                           </td>
 
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-zinc-400">
                             {row.instagram || (
-                              <span className="text-amber-600">
+                              <span className="text-amber-400">
                                 Sin instagram
                               </span>
                             )}
@@ -317,16 +375,21 @@ export default function ImportarParticipantesPage() {
                 </table>
               </div>
 
-              <div className="flex justify-end gap-3 p-6 border-t">
+              <div className="flex justify-end gap-3 p-6 border-t border-zinc-800">
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
                   onClick={resetPreview}
                   disabled={isImporting}
                 >
                   Limpiar
                 </Button>
 
-                <Button onClick={handleImport} disabled={!canImport}>
+                <Button
+                  onClick={handleImport}
+                  disabled={!canImport}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
                   {isImporting ? "Importando..." : "Importar participantes"}
                 </Button>
               </div>
@@ -346,9 +409,9 @@ function Badge({
   tone: "success" | "warning" | "danger";
 }) {
   const styles = {
-    success: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    warning: "bg-amber-50 text-amber-700 border-amber-200",
-    danger: "bg-red-50 text-red-700 border-red-200",
+    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    warning: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+    danger: "bg-red-500/10 text-red-400 border-red-500/30",
   };
 
   return (

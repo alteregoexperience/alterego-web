@@ -1,70 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 export default function GestionLayout({ children }: any) {
-
-  const [authorized, setAuthorized] = useState(false)
-  const [user, setUser] = useState("")
-  const [pass, setPass] = useState("")
-  const [error, setError] = useState("")
+  const [authorized, setAuthorized] = useState(false);
+  const [user, setUser] = useState("");
+  const [pass, setPass] = useState("");
+  const [error, setError] = useState("");
 
   const login = async () => {
-
     const res = await fetch("/api/staff-login", {
       method: "POST",
-      body: JSON.stringify({ user, pass })
-    })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user, pass }),
+    });
 
     if (res.ok) {
-      setAuthorized(true)
+      setAuthorized(true);
     } else {
-      setError("Credenciales incorrectas")
+      setError("Credenciales incorrectas");
     }
-  }
+  };
 
   if (!authorized) {
-
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100">
-
-        <div className="bg-white p-8 rounded-xl shadow-md w-80">
-
-          <h2 className="text-xl font-semibold mb-6 text-center">
-            Staff Login
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-zinc-950 to-black text-white">
+        <div className="w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl p-8">
+          <h2 className="text-xl font-semibold mb-6 text-center text-purple-400">
+            Acceso Interno
           </h2>
 
           <input
             placeholder="Usuario"
-            className="border p-2 w-full mb-3 rounded"
-            onChange={e => setUser(e.target.value)}
+            className="w-full bg-zinc-950 border border-zinc-700 text-white placeholder:text-zinc-500 p-2 rounded mb-3 outline-none focus:border-purple-500 transition"
+            onChange={(e) => setUser(e.target.value)}
           />
 
           <input
             type="password"
-            placeholder="Password"
-            className="border p-2 w-full mb-3 rounded"
-            onChange={e => setPass(e.target.value)}
+            placeholder="Contraseña"
+            className="w-full bg-zinc-950 border border-zinc-700 text-white placeholder:text-zinc-500 p-2 rounded mb-3 outline-none focus:border-purple-500 transition"
+            onChange={(e) => setPass(e.target.value)}
           />
 
           {error && (
-            <p className="text-red-500 text-sm mb-3">
-              {error}
-            </p>
+            <p className="text-red-400 text-sm mb-3 text-center">{error}</p>
           )}
 
           <button
             onClick={login}
-            className="w-full bg-black text-white py-2 rounded hover:opacity-90"
+            className="w-full bg-purple-600 hover:bg-purple-700 transition text-white py-2 rounded font-medium"
           >
-            Entrar
+            Acceder
           </button>
-
         </div>
-
       </div>
-    )
+    );
   }
 
-  return children
+  return children;
 }
