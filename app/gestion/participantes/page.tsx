@@ -90,6 +90,13 @@ export default function ParticipantesPage() {
                 Panel de participantes
               </CardTitle>
 
+              <Button
+                onClick={() => router.push("/gestion/nuevo-participante")}
+                className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+              >
+                + Nuevo participante
+              </Button>
+
               <Input
                 placeholder="Buscar nombre o instagram..."
                 value={search}
@@ -97,13 +104,6 @@ export default function ParticipantesPage() {
                 className="w-full md:max-w-md bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
-
-            <Button
-              onClick={() => router.push("/gestion/nuevo-participante")}
-              className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
-            >
-              + Nuevo participante
-            </Button>
           </CardHeader>
 
           <CardContent>
