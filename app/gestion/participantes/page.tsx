@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ export default function ParticipantesPage() {
   const [search, setSearch] = useState("");
 
   const router = useRouter();
+  const updatingRef = useRef(false);
 
   useEffect(() => {
     const fetchParticipants = async () => {
@@ -37,11 +38,19 @@ export default function ParticipantesPage() {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "UPDATE",
           schema: "public",
           table: "participants",
         },
-        () => fetchParticipants(),
+        (payload) => {
+          setParticipants((prev) =>
+            prev.map((p) =>
+              p.id === payload.new.id
+                ? { ...p, points: payload.new.points }
+                : p,
+            ),
+          );
+        },
       )
       .subscribe();
 
@@ -51,10 +60,19 @@ export default function ParticipantesPage() {
   }, []);
 
   const updatePoints = async (id: string, delta: number) => {
+    if (updatingRef.current) return;
+
+    updatingRef.current = true;
+
     await fetch("/api/participants/update-points", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, delta }),
     });
+
+    setTimeout(() => {
+      updatingRef.current = false;
+    }, 300);
   };
 
   const filtered = participants.filter((p) => {

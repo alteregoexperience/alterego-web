@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { checkAuth } from "@/lib/auth";
 
 type ParticipantPayload = {
   name: string;
@@ -7,6 +8,11 @@ type ParticipantPayload = {
 };
 
 export async function POST(req: Request) {
+  const isAuth = await checkAuth();
+
+  if (!isAuth) {
+    return new Response("Unauthorized", { status: 401 });
+  }
   try {
     const body = await req.json();
 

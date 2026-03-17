@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkAuth } from "@/lib/auth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,11 @@ const supabase = createClient(
 );
 
 export async function POST(req: Request) {
+  const isAuth = await checkAuth();
+
+  if (!isAuth) {
+    return new Response("Unauthorized", { status: 401 });
+  }
   const { name, instagram } = await req.json();
 
   if (!name || !name.trim()) {

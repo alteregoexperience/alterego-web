@@ -22,7 +22,7 @@ export default function Home() {
 
           <h1 className="text-7xl font-bold tracking-tight text-center">
             <span className="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-600 bg-clip-text text-transparent">
-              ALTER EGO
+              ALTER EGO EXPERIENCE
             </span>
           </h1>
 
