@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
+
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
 
   const login = async () => {
     const res = await fetch("/api/login", {
@@ -17,7 +21,8 @@ export default function LoginPage() {
     });
 
     if (res.ok) {
-      window.location.href = "/gestion/participantes";
+      // 👇 redirige a donde quería ir
+      window.location.href = redirect || "/gestion/participantes";
     } else {
       setError("Credenciales incorrectas");
     }
