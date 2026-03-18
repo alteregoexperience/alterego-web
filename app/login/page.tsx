@@ -1,11 +1,13 @@
 import LoginClient from "./LoginClient";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { redirect?: string };
+  searchParams: Promise<{ redirect?: string }>;
 }) {
-  const redirect = searchParams.redirect || "/gestion/participantes";
+  const params = await searchParams;
+
+  const redirect = params.redirect || "/gestion/participantes";
 
   return <LoginClient redirect={redirect} />;
 }
