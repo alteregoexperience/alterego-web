@@ -47,7 +47,7 @@ export default function CrearParticipantePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white">
+    <div className="min-h-[100dvh] bg-gradient-to-b from-black via-zinc-950 to-black text-white">
       <div className="max-w-xl mx-auto p-4 md:p-10">
         <Card className="bg-zinc-900 border border-zinc-800 shadow-xl">
           <CardHeader className="space-y-3">

@@ -184,7 +184,7 @@ export default function ImportarParticipantesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white">
+    <div className="min-h-[100dvh] bg-gradient-to-b from-black via-zinc-950 to-black text-white">
       <div className="mx-auto max-w-6xl p-8 flex flex-col gap-6">
         {/* HEADER */}
 

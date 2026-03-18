@@ -29,7 +29,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-zinc-950 to-black text-white">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-b from-black via-zinc-950 to-black text-white">
       <div className="w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl p-8">
         <h2 className="text-xl font-semibold mb-6 text-center text-purple-400">
           Acceso Staff

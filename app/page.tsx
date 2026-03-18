@@ -5,7 +5,7 @@ import { Trophy, Users, Upload } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-[#0f0b1a] to-black text-white overflow-hidden">
+    <div className="relative min-h-[100dvh] flex items-center justify-center bg-gradient-to-b from-black via-[#0f0b1a] to-black text-white overflow-hidden">
       {/* LUZ HORIZONTAL */}
 
       <div className="absolute top-[40%] left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-40 blur-sm"></div>
