@@ -7,11 +7,17 @@ export function middleware(req: NextRequest) {
   if (!auth && req.nextUrl.pathname.startsWith("/gestion")) {
     const loginUrl = new URL("/login", req.url);
 
-    // 👇 guardas destino original
-    loginUrl.searchParams.set("redirect", req.nextUrl.pathname);
+    loginUrl.searchParams.set(
+      "redirect",
+      req.nextUrl.pathname + req.nextUrl.search,
+    );
 
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
 }
+
+export const config = {
+  matcher: ["/gestion/:path*"],
+};
