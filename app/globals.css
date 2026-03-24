@@ -137,3 +137,17 @@ html,
 body {
   overscroll-behavior: none;
 }
+
+.turtle-gold {
+  filter: brightness(0) saturate(100%) invert(78%) sepia(63%) saturate(749%)
+    hue-rotate(1deg) brightness(103%) contrast(101%);
+}
+
+.turtle-silver {
+  filter: grayscale(1) brightness(1.4);
+}
+
+.turtle-bronze {
+  filter: brightness(0) saturate(100%) invert(49%) sepia(32%) saturate(744%)
+    hue-rotate(348deg) brightness(92%) contrast(90%);
+}
