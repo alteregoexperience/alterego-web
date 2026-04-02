@@ -212,219 +212,214 @@ export default function ImportarParticipantesPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-black via-zinc-950 to-black text-white">
-      <div className="mx-auto max-w-6xl p-8 flex flex-col gap-6">
-        {/* HEADER */}
+    <div className="mx-auto max-w-6xl p-8 flex flex-col gap-6">
+      {/* HEADER */}
 
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-bold text-purple-400">
-              Importar participantes
-            </h1>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold text-purple-400">
+            Importar participantes
+          </h1>
 
-            <p className="text-sm text-zinc-400 mt-1">
-              Carga un Excel para reemplazar la lista completa de participantes
-            </p>
-          </div>
-
-          <div className="text-right">
-            <div className="text-xs text-zinc-500">Participantes actuales</div>
-
-            <div className="text-2xl font-bold text-white">
-              {isCounting ? "..." : dbCount}
-            </div>
-          </div>
+          <p className="text-sm text-zinc-400 mt-1">
+            Carga un Excel para reemplazar la lista completa de participantes
+          </p>
         </div>
 
-        {/* DROPZONE */}
+        <div className="text-right">
+          <div className="text-xs text-zinc-500">Participantes actuales</div>
 
-        <Card className="bg-zinc-900 border border-zinc-800 shadow-xl">
-          <CardContent className="p-6 flex flex-col gap-4">
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all cursor-pointer
+          <div className="text-2xl font-bold text-white">
+            {isCounting ? "..." : dbCount}
+          </div>
+        </div>
+      </div>
+
+      {/* DROPZONE */}
+
+      <Card className="bg-zinc-900 border border-zinc-800 shadow-xl">
+        <CardContent className="p-6 flex flex-col gap-4">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all cursor-pointer
               ${
                 isDragging
                   ? "border-purple-500 bg-purple-500/10"
                   : "border-zinc-700 hover:border-purple-500 hover:bg-zinc-800/40"
               }
               p-10`}
+          >
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+
+            <motion.div
+              animate={{ scale: isDragging ? 1.05 : 1 }}
+              className="flex flex-col items-center gap-2 text-center"
             >
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
+              <Upload className="w-10 h-10 text-purple-400" />
 
-              <motion.div
-                animate={{ scale: isDragging ? 1.05 : 1 }}
-                className="flex flex-col items-center gap-2 text-center"
-              >
-                <Upload className="w-10 h-10 text-purple-400" />
+              {fileName ? (
+                <>
+                  <p className="text-sm text-zinc-400">Archivo seleccionado</p>
 
-                {fileName ? (
-                  <>
-                    <p className="text-sm text-zinc-400">
-                      Archivo seleccionado
-                    </p>
+                  <p className="text-white font-medium">{fileName}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-zinc-300">
+                    Arrastra tu archivo Excel aquí
+                  </p>
 
-                    <p className="text-white font-medium">{fileName}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-zinc-300">
-                      Arrastra tu archivo Excel aquí
-                    </p>
+                  <p className="text-xs text-zinc-500">
+                    o haz click para seleccionarlo
+                  </p>
+                </>
+              )}
 
-                    <p className="text-xs text-zinc-500">
-                      o haz click para seleccionarlo
-                    </p>
-                  </>
-                )}
+              <div className="flex items-center gap-2 text-xs text-zinc-500 mt-2">
+                <FileSpreadsheet className="w-4 h-4" />
+                .xlsx / .xls / .csv
+              </div>
+            </motion.div>
+          </div>
 
-                <div className="flex items-center gap-2 text-xs text-zinc-500 mt-2">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  .xlsx / .xls / .csv
-                </div>
-              </motion.div>
+          {isParsing && (
+            <p className="text-sm text-zinc-400">Leyendo archivo...</p>
+          )}
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm px-4 py-3 rounded-lg">
+              {success}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* SUMMARY */}
+
+      {summary && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex gap-6 text-sm text-zinc-400"
+        >
+          <span>
+            Filas detectadas: <b className="text-white">{summary.totalRows}</b>
+          </span>
+
+          <span>
+            Sin instagram:{" "}
+            <b className="text-white">{summary.rowsWithoutInstagram}</b>
+          </span>
+
+          <span>
+            Se insertarán:{" "}
+            <b className="text-white">{participantsToImport.length}</b>
+          </span>
+        </motion.div>
+      )}
+
+      {/* PREVIEW */}
+
+      {summary && (
+        <Card className="bg-zinc-900 border border-zinc-800">
+          <CardContent className="p-0">
+            <div className="px-6 py-4 border-b border-zinc-800 text-sm text-amber-400 bg-amber-500/10">
+              Esta acción reemplazará todos los participantes actuales
             </div>
 
-            {isParsing && (
-              <p className="text-sm text-zinc-400">Leyendo archivo...</p>
-            )}
+            <div className="max-h-[520px] overflow-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-zinc-900 sticky top-0 border-b border-zinc-800 text-zinc-300">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Fila</th>
+                    <th className="px-4 py-3 text-left">Nombre</th>
+                    <th className="px-4 py-3 text-left">Instagram</th>
+                    <th className="px-4 py-3 text-left">Estado</th>
+                  </tr>
+                </thead>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
+                <tbody>
+                  {previewRows.map((row) => {
+                    const rowClass = row.errors.length
+                      ? "bg-red-500/5"
+                      : row.warnings.length
+                        ? "bg-amber-500/5"
+                        : "";
 
-            {success && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm px-4 py-3 rounded-lg">
-                {success}
-              </div>
-            )}
+                    return (
+                      <tr
+                        key={`${row.rowNumber}-${row.name}-${row.instagram}`}
+                        className={`border-t border-zinc-800 ${rowClass}`}
+                      >
+                        <td className="px-4 py-3 text-zinc-500">
+                          {row.rowNumber}
+                        </td>
+
+                        <td className="px-4 py-3 font-medium text-white">
+                          {row.name || "-"}
+                        </td>
+
+                        <td className="px-4 py-3 text-zinc-400">
+                          {row.instagram || (
+                            <span className="text-amber-400">
+                              Sin instagram
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3">
+                          {row.errors.length > 0 ? (
+                            <Badge tone="danger">No se insertará</Badge>
+                          ) : row.isDuplicate ? (
+                            <Badge tone="warning">Duplicado</Badge>
+                          ) : (
+                            <Badge tone="success">Se insertará</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t border-zinc-800">
+              <Button
+                variant="ghost"
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                onClick={resetPreview}
+                disabled={isImporting}
+              >
+                Limpiar
+              </Button>
+
+              <Button
+                onClick={handleImport}
+                disabled={!canImport}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                {isImporting ? "Importando..." : "Importar participantes"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
-
-        {/* SUMMARY */}
-
-        {summary && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex gap-6 text-sm text-zinc-400"
-          >
-            <span>
-              Filas detectadas:{" "}
-              <b className="text-white">{summary.totalRows}</b>
-            </span>
-
-            <span>
-              Sin instagram:{" "}
-              <b className="text-white">{summary.rowsWithoutInstagram}</b>
-            </span>
-
-            <span>
-              Se insertarán:{" "}
-              <b className="text-white">{participantsToImport.length}</b>
-            </span>
-          </motion.div>
-        )}
-
-        {/* PREVIEW */}
-
-        {summary && (
-          <Card className="bg-zinc-900 border border-zinc-800">
-            <CardContent className="p-0">
-              <div className="px-6 py-4 border-b border-zinc-800 text-sm text-amber-400 bg-amber-500/10">
-                Esta acción reemplazará todos los participantes actuales
-              </div>
-
-              <div className="max-h-[520px] overflow-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-zinc-900 sticky top-0 border-b border-zinc-800 text-zinc-300">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Fila</th>
-                      <th className="px-4 py-3 text-left">Nombre</th>
-                      <th className="px-4 py-3 text-left">Instagram</th>
-                      <th className="px-4 py-3 text-left">Estado</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {previewRows.map((row) => {
-                      const rowClass = row.errors.length
-                        ? "bg-red-500/5"
-                        : row.warnings.length
-                          ? "bg-amber-500/5"
-                          : "";
-
-                      return (
-                        <tr
-                          key={`${row.rowNumber}-${row.name}-${row.instagram}`}
-                          className={`border-t border-zinc-800 ${rowClass}`}
-                        >
-                          <td className="px-4 py-3 text-zinc-500">
-                            {row.rowNumber}
-                          </td>
-
-                          <td className="px-4 py-3 font-medium text-white">
-                            {row.name || "-"}
-                          </td>
-
-                          <td className="px-4 py-3 text-zinc-400">
-                            {row.instagram || (
-                              <span className="text-amber-400">
-                                Sin instagram
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="px-4 py-3">
-                            {row.errors.length > 0 ? (
-                              <Badge tone="danger">No se insertará</Badge>
-                            ) : row.isDuplicate ? (
-                              <Badge tone="warning">Duplicado</Badge>
-                            ) : (
-                              <Badge tone="success">Se insertará</Badge>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end gap-3 p-6 border-t border-zinc-800">
-                <Button
-                  variant="ghost"
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-                  onClick={resetPreview}
-                  disabled={isImporting}
-                >
-                  Limpiar
-                </Button>
-
-                <Button
-                  onClick={handleImport}
-                  disabled={!canImport}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {isImporting ? "Importando..." : "Importar participantes"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      )}
     </div>
   );
 }
