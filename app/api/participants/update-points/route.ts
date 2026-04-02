@@ -14,15 +14,16 @@ export async function POST(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { id, delta } = await req.json();
+  const { id, delta, eventId } = await req.json();
 
-  if (!id || !delta) {
+  if (!id || typeof delta !== "number" || !eventId) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.rpc("increment_points", {
-    participant_id: id,
-    delta_points: delta,
+  const { error } = await supabase.rpc("increment_event_points", {
+    p_participant_id: id,
+    p_delta_points: delta,
+    p_event_id: eventId,
   });
 
   if (error) {

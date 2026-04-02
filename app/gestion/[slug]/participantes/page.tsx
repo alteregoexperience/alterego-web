@@ -10,9 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-import { Participant } from "@/types/Participant";
+import { useParams } from "next/navigation";
+
+import { DEFAULT_EVENT_ID, Participant } from "@/types/Participant";
 
 export default function ParticipantesPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+  const [eventId, setEventId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [search, setSearch] = useState("");
 
@@ -20,14 +25,52 @@ export default function ParticipantesPage() {
   const updatingRef = useRef(false);
 
   useEffect(() => {
+    if (!slug) return;
+
+    const loadEvent = async () => {
+      const { data } = await supabase
+        .from("events")
+        .select("id")
+        .eq("slug", slug)
+        .single();
+
+      if (data?.id) {
+        setEventId(data.id);
+      } else {
+        setEventId(DEFAULT_EVENT_ID);
+      }
+    };
+
+    loadEvent();
+  }, [slug]);
+
+  useEffect(() => {
+    if (!eventId) return;
     const fetchParticipants = async () => {
       const { data, error } = await supabase
-        .from("participants")
-        .select("id,name,instagram,points")
-        .order("name");
+        .from("event_participants")
+        .select(
+          `
+  points,
+  participants (
+    id,
+    name,
+    instagram
+  )
+`,
+        )
+        .eq("event_id", eventId)
+        .order("participants(name)");
 
       if (!error) {
-        setParticipants(data ?? []);
+        const mapped = (data ?? []).map((row: any) => ({
+          id: row.participants.id,
+          name: row.participants.name,
+          instagram: row.participants.instagram ?? "",
+          points: row.points,
+        }));
+
+        setParticipants(mapped);
       }
     };
 
@@ -40,12 +83,13 @@ export default function ParticipantesPage() {
         {
           event: "UPDATE",
           schema: "public",
-          table: "participants",
+          table: "event_participants",
+          filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
           setParticipants((prev) =>
             prev.map((p) =>
-              p.id === payload.new.id
+              p.id === payload.new.participant_id
                 ? { ...p, points: payload.new.points }
                 : p,
             ),
@@ -57,7 +101,7 @@ export default function ParticipantesPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [eventId]);
 
   const updatePoints = async (id: string, delta: number) => {
     if (updatingRef.current) return;
@@ -67,7 +111,7 @@ export default function ParticipantesPage() {
     await fetch("/api/participants/update-points", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, delta }),
+      body: JSON.stringify({ id, delta, eventId }),
     });
 
     setTimeout(() => {
@@ -91,7 +135,9 @@ export default function ParticipantesPage() {
               </CardTitle>
 
               <Button
-                onClick={() => router.push("/gestion/nuevo-participante")}
+                onClick={() =>
+                  router.push(`/gestion/${slug}/nuevo-participante`)
+                }
                 className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
               >
                 + Nuevo participante
@@ -168,7 +214,7 @@ export default function ParticipantesPage() {
         {/* Floating action button */}
 
         <Button
-          onClick={() => router.push("/gestion/nuevo-participante")}
+          onClick={() => router.push(`/gestion/${slug}/nuevo-participante`)}
           className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-4 rounded-full
   bg-purple-600 hover:bg-purple-700 text-white shadow-xl
   border border-purple-500/30"

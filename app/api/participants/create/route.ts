@@ -13,7 +13,20 @@ export async function POST(req: Request) {
   if (!isAuth) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const { name, instagram } = await req.json();
+  const { name, instagram, slug } = await req.json();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+
+  if (!event) {
+    return NextResponse.json(
+      { error: "Evento no encontrado" },
+      { status: 404 },
+    );
+  }
 
   if (!name || !name.trim()) {
     return NextResponse.json(
@@ -55,14 +68,29 @@ export async function POST(req: Request) {
     );
   }
 
-  const { error } = await supabase.from("participants").insert({
-    name: normalizedName,
-    instagram: normalizedInstagram,
-    points: 0,
-  });
+  const { data: inserted, error: insertError } = await supabase
+    .from("participants")
+    .insert({
+      name: normalizedName,
+      instagram: normalizedInstagram,
+    })
+    .select()
+    .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (insertError) {
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
+
+  const { error: relationError } = await supabase
+    .from("event_participants")
+    .insert({
+      event_id: event.id,
+      participant_id: inserted.id,
+      points: 0,
+    });
+
+  if (relationError) {
+    return NextResponse.json({ error: relationError.message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { ArrowLeft } from "lucide-react";
 
 export default function CrearParticipantePage() {
   const router = useRouter();
+  const params = useParams();
+  const slug = params?.slug as string;
 
   const [name, setName] = useState("");
   const [instagram, setInstagram] = useState("");
@@ -31,7 +33,7 @@ export default function CrearParticipantePage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, instagram }),
+      body: JSON.stringify({ name, instagram, slug }),
     });
 
     const data = await res.json();
@@ -43,7 +45,7 @@ export default function CrearParticipantePage() {
       return;
     }
 
-    router.push("/gestion/participantes");
+    router.push(`/gestion/${slug}/participantes`);
   };
 
   return (

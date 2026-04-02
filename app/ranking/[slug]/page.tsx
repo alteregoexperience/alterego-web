@@ -3,16 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion, LayoutGroup } from "framer-motion";
-import { Trophy, Medal } from "lucide-react";
-
-type Participant = {
-  id: string;
-  name: string;
-  instagram: string;
-  points: number;
-};
+import { DEFAULT_EVENT_ID, Participant } from "@/types/Participant";
+import { useParams } from "next/navigation";
 
 export default function RankingPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+  const [eventId, setEventId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [visibleParticipants, setVisibleParticipants] = useState<Participant[]>(
     [],
@@ -46,18 +43,51 @@ export default function RankingPage() {
   };
 
   useEffect(() => {
+    const loadEvent = async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id")
+        .eq("slug", slug)
+        .single();
+
+      if (data?.id) {
+        setEventId(data.id);
+      } else {
+        console.warn("Event not found, using DEFAULT_EVENT_ID");
+        setEventId(DEFAULT_EVENT_ID);
+      }
+    };
+
+    loadEvent();
+  }, [slug]);
+
+  useEffect(() => {
+    if (!eventId) return;
     const loadRanking = async () => {
-      const { data } = await supabase
-        .from("participants")
-        .select("*")
+      const { data, error } = await supabase
+        .from("event_participants")
+        .select(
+          `
+    points,
+    participants (
+      id,
+      name,
+      instagram
+    )
+  `,
+        )
+        .eq("event_id", eventId)
         .order("points", { ascending: false })
-        .order("name", { ascending: true })
         .limit(500);
 
-      const participantsData = (data ?? []).map((p) => ({
-        ...p,
-        name: normalizeName(p.name),
-      }));
+      const participantsData: Participant[] = (data ?? [])
+        .map((p: any) => ({
+          id: p.participants?.id,
+          name: normalizeName(p.participants?.name ?? ""),
+          instagram: p.participants?.instagram ?? "",
+          points: p.points,
+        }))
+        .filter((p) => p.id);
 
       setParticipants(participantsData);
 
@@ -71,61 +101,63 @@ export default function RankingPage() {
     loadRanking();
 
     const channel = supabase
-      .channel("ranking")
+      .channel(`ranking-${eventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "event_participants",
+          filter: `event_id=eq.${eventId}`,
+        },
+        handleRealtime,
+      )
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
-          table: "participants",
+          table: "event_participants",
+          filter: `event_id=eq.${eventId}`,
         },
-        (payload) => {
-          setParticipants((prev) => {
-            const updated = prev.map((p) =>
-              p.id === payload.new.id
-                ? {
-                    ...p,
-                    name: normalizeName(payload.new.name ?? p.name),
-                    points: payload.new.points,
-                  }
-                : p,
-            );
-
-            const sorted = [...updated].sort((a, b) => {
-              if (b.points !== a.points) return b.points - a.points;
-              return a.name.localeCompare(b.name);
-            });
-
-            // DETECTAR CAMBIOS EN PODIO
-            const newTop3 = sorted.slice(0, 3);
-            const prevTop3 = prevTop3Ref.current;
-
-            newTop3.forEach((p, i) => {
-              if (
-                !prevTop3[i] ||
-                prevTop3[i].id !== p.id ||
-                prevTop3[i].points !== p.points
-              ) {
-                setAnimatedPodium(i);
-              }
-            });
-
-            prevTop3Ref.current = newTop3;
-
-            requestAnimationFrame(() => {
-              calculateVisibleParticipants(sorted);
-            });
-
-            return sorted;
-          });
-        },
+        handleRealtime,
       )
       .subscribe();
+
+    async function handleRealtime() {
+      const { data } = await supabase
+        .from("event_participants")
+        .select(
+          `
+      points,
+      participants (
+        id,
+        name,
+        instagram
+      )
+    `,
+        )
+        .eq("event_id", eventId)
+        .order("points", { ascending: false });
+
+      const mapped = (data ?? []).map((row: any) => ({
+        id: row.participants.id,
+        name: normalizeName(row.participants.name),
+        instagram: row.participants.instagram ?? "",
+        points: row.points,
+      }));
+
+      setParticipants(mapped);
+
+      requestAnimationFrame(() => {
+        calculateVisibleParticipants(mapped);
+      });
+    }
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [eventId]);
 
   // 🔥 RESET ANIMACIÓN
   useEffect(() => {

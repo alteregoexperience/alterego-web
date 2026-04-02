@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { useParams } from "next/navigation";
 
 import {
   parseParticipantsExcel,
@@ -17,6 +18,9 @@ import { Upload, FileSpreadsheet } from "lucide-react";
 type ImportSummary = { totalRows: number; rowsWithoutInstagram: number };
 
 export default function ImportarParticipantesPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+  const [eventId, setEventId] = useState<string | null>(null);
   const hasFetched = useRef(false);
   const [dbCount, setDbCount] = useState<number>(0);
   const [isCounting, setIsCounting] = useState<boolean>(true);
@@ -37,15 +41,14 @@ export default function ImportarParticipantesPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
 
-  const canImport = useMemo(() => {
-    return participantsToImport.length > 0 && !isImporting;
-  }, [participantsToImport.length, isImporting]);
-
-  const fetchDbCount = async () => {
+  const fetchDbCount = async (currentEventId: string) => {
     try {
-      const response = await fetch("/api/participants/count", {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/participants/count?eventId=${currentEventId}`,
+        {
+          cache: "no-store",
+        },
+      );
 
       const data = await response.json();
 
@@ -61,12 +64,32 @@ export default function ImportarParticipantesPage() {
     }
   };
 
-  useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
+  const canImport = useMemo(() => {
+    return participantsToImport.length > 0 && !isImporting;
+  }, [participantsToImport.length, isImporting]);
 
-    fetchDbCount();
-  }, []);
+  useEffect(() => {
+    if (!slug) return;
+
+    const loadEvent = async () => {
+      const { data } = await supabase
+        .from("events")
+        .select("id")
+        .eq("slug", slug)
+        .single();
+
+      if (data?.id) {
+        setEventId(data.id);
+      }
+    };
+
+    loadEvent();
+  }, [slug]);
+
+  useEffect(() => {
+    if (!eventId) return;
+    fetchDbCount(eventId);
+  }, [eventId]);
 
   const resetPreview = () => {
     setPreviewRows([]);
@@ -154,7 +177,10 @@ export default function ImportarParticipantesPage() {
       const response = await fetch("/api/participants/replace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participants: participantsToImport }),
+        body: JSON.stringify({
+          participants: participantsToImport,
+          eventId,
+        }),
       });
 
       const data = await response.json();
@@ -169,7 +195,9 @@ export default function ImportarParticipantesPage() {
         } participantes insertados`,
       );
 
-      await fetchDbCount();
+      if (eventId) {
+        await fetchDbCount(eventId);
+      }
     } catch (err) {
       console.error(err);
 

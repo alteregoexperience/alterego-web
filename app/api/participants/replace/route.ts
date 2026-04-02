@@ -45,9 +45,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data, error } = await supabaseAdmin.rpc("replace_participants", {
-      new_participants: participants,
-    });
+    const { data, error } = await supabaseAdmin.rpc(
+      "replace_participants_for_event",
+      {
+        new_participants: participants,
+        target_event: body.eventId,
+      },
+    );
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
