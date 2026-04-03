@@ -212,7 +212,7 @@ export default function ImportarParticipantesPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl p-8 flex flex-col gap-6">
+    <div className="w-full">
       {/* HEADER */}
 
       <div className="flex justify-between items-end">
@@ -221,9 +221,9 @@ export default function ImportarParticipantesPage() {
             Importar participantes
           </h1>
 
-          <p className="text-sm text-zinc-400 mt-1">
+          <a className="text-sm text-zinc-400 mt-1">
             Carga un Excel para reemplazar la lista completa de participantes
-          </p>
+          </a>
         </div>
 
         <div className="text-right">

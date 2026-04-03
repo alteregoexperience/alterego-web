@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Ranking Event",
+  title: "Alter Ego Experience",
   description: "Realtime ranking",
 };
 

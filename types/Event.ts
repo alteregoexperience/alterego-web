@@ -11,3 +11,10 @@ export type Event = {
   is_ticketing_enabled: boolean | null;
   created_at: string | null;
 };
+
+export type EventListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  starts_at: string;
+};
