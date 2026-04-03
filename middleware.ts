@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { verifyAuthToken } from "@/lib/auth";
 
-export function middleware(req: NextRequest) {
-  const auth = req.cookies.get("auth")?.value;
+export async function middleware(req: NextRequest) {
+  const token = req.cookies.get("auth")?.value;
 
-  if (!auth && req.nextUrl.pathname.startsWith("/gestion")) {
+  if (
+    !(await verifyAuthToken(token)) &&
+    req.nextUrl.pathname.startsWith("/gestion")
+  ) {
     const loginUrl = new URL("/login", req.url);
 
     loginUrl.searchParams.set(

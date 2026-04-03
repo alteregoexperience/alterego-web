@@ -1,3 +1,4 @@
+import { signAuthToken } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -7,13 +8,15 @@ export async function POST(req: Request) {
     user === process.env.ADMIN_STAFF_USER &&
     pass === process.env.ADMIN_STAFF_PASSWORD
   ) {
+    const token = await signAuthToken();
+
     const res = NextResponse.json({ ok: true });
 
-    res.cookies.set("auth", "true", {
+    res.cookies.set("auth", token, {
       httpOnly: true,
       secure: true,
       sameSite: "strict",
-      maxAge: 60 * 60 * 8, // 8 horas
+      maxAge: 60 * 60 * 8,
       path: "/",
     });
 
