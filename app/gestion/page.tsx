@@ -11,7 +11,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { Users, Upload, Trophy, Plus, Calendar } from "lucide-react";
+import { Users, Upload, Trophy, Plus, Calendar, Ticket } from "lucide-react";
 import { isTicketingOpen } from "@/lib/events";
 
 export default function GestionDashboard() {
@@ -225,7 +225,7 @@ function EventCard({ event }: { event: EventListItem }) {
             </div>
 
             {/* ACTIONS */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <ActionButton
                 icon={<Users size={16} />}
                 label="Participantes"
@@ -244,6 +244,12 @@ function EventCard({ event }: { event: EventListItem }) {
                 icon={<Trophy size={16} />}
                 label="Ranking"
                 onClick={() => router.push(`/ranking/${event.slug}`)}
+              />
+
+              <ActionButton
+                icon={<Ticket size={16} />}
+                label="Tickets"
+                onClick={() => router.push(`/gestion/${event.slug}/tickets`)}
               />
             </div>
           </CardContent>
