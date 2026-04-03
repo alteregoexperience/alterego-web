@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Event } from "@/types/Event";
 import { supabase } from "@/lib/supabase";
-import { ChevronRight } from "lucide-react";
 
 type TicketType = {
   id: string;
@@ -17,6 +16,7 @@ type TicketType = {
 
 export default function TicketsSection({ event }: { event: Event }) {
   const [tickets, setTickets] = useState<TicketType[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const loadTickets = async () => {
@@ -32,6 +32,34 @@ export default function TicketsSection({ event }: { event: Event }) {
     loadTickets();
   }, [event.id]);
 
+  const increase = (ticket: TicketType) => {
+    setQuantities((prev) => {
+      const current = prev[ticket.id] || 0;
+
+      if (ticket.stock === null) {
+        return { ...prev, [ticket.id]: current + 1 };
+      }
+
+      const available = (ticket.stock || 0) - (ticket.sold || 0);
+
+      return {
+        ...prev,
+        [ticket.id]: Math.min(current + 1, available),
+      };
+    });
+  };
+
+  const decrease = (ticket: TicketType) => {
+    setQuantities((prev) => {
+      const current = prev[ticket.id] || 0;
+
+      return {
+        ...prev,
+        [ticket.id]: Math.max(0, current - 1),
+      };
+    });
+  };
+
   if (tickets.length === 0) return null;
 
   return (
@@ -46,6 +74,8 @@ export default function TicketsSection({ event }: { event: Event }) {
               : (ticket.stock || 0) - (ticket.sold || 0);
 
           const soldOut = available !== null && available <= 0;
+          const lowStock =
+            available !== null && available > 0 && available < 50;
 
           return (
             <div
@@ -61,9 +91,9 @@ export default function TicketsSection({ event }: { event: Event }) {
                   <p className="text-sm text-gray-400">{ticket.description}</p>
                 )}
 
-                {ticket.stock !== null && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {available} disponibles
+                {lowStock && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    Quedan pocas entradas
                   </p>
                 )}
               </div>
@@ -71,13 +101,27 @@ export default function TicketsSection({ event }: { event: Event }) {
               <div className="flex items-center gap-3">
                 <span className="font-semibold">{ticket.price}€</span>
 
-                <div
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                    soldOut ? "bg-white/10" : "bg-purple-600"
-                  }`}
-                >
-                  <ChevronRight size={16} />
-                </div>
+                {!soldOut && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => decrease(ticket)}
+                      className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center"
+                    >
+                      -
+                    </button>
+
+                    <span className="w-6 text-center">
+                      {quantities[ticket.id] || 0}
+                    </span>
+
+                    <button
+                      onClick={() => increase(ticket)}
+                      className="w-8 h-8 rounded-lg bg-purple-600 hover:bg-purple-700 flex items-center justify-center"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );

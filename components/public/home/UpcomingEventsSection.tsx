@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import SectionContainer from "./SectionContainer";
 import EventCard from "./EventCard";
 import EventDrawer from "../events/EventDrawer";
@@ -8,24 +9,26 @@ import EventDrawerContent from "../events/EventDrawerContent";
 import { Event } from "@/types/Event";
 
 export default function UpcomingEventsSection({ events }: { events: Event[] }) {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(() => {
-    if (typeof window === "undefined") return null;
+  const searchParams = useSearchParams();
+  const [manuallySelectedEvent, setManuallySelectedEvent] =
+    useState<Event | null>(null);
 
-    const params = new URLSearchParams(window.location.search);
-    const slug = params.get("event");
-
+  const eventFromUrl = useMemo(() => {
+    const slug = searchParams.get("event");
     if (!slug) return null;
 
-    return events.find((e) => e.slug === slug) || null;
-  });
+    return events.find((event) => event.slug === slug) ?? null;
+  }, [events, searchParams]);
+
+  const selectedEvent = manuallySelectedEvent ?? eventFromUrl;
 
   const openEvent = (event: Event) => {
-    setSelectedEvent(event);
+    setManuallySelectedEvent(event);
     window.history.pushState(null, "", `/?event=${event.slug}`);
   };
 
   const closeEvent = () => {
-    setSelectedEvent(null);
+    setManuallySelectedEvent(null);
     window.history.pushState(null, "", "/");
   };
 
@@ -64,4 +67,3 @@ export default function UpcomingEventsSection({ events }: { events: Event[] }) {
     </>
   );
 }
-  
