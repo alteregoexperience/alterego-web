@@ -10,11 +10,15 @@ export type Event = {
   cover_image_url: string | null;
   is_ticketing_enabled: boolean | null;
   created_at: string | null;
+  ticket_sales_start_at: string | null;
 };
 
-export type EventListItem = {
+export interface EventListItem {
   id: string;
-  slug: string;
   title: string;
+  slug: string;
   starts_at: string;
-};
+  ends_at?: string | null;
+  ticket_sales_start_at: string | null;
+  event_participants: { count: number }[];
+}

@@ -12,22 +12,55 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { Users, Upload, Trophy, Plus, Calendar } from "lucide-react";
+import { isTicketingOpen } from "@/lib/events";
 
 export default function GestionDashboard() {
   const router = useRouter();
-  const [events, setEvents] = useState<EventListItem[]>([]);
+  const [futureEvents, setFutureEvents] = useState<EventListItem[]>([]);
+  const [pastEvents, setPastEvents] = useState<EventListItem[]>([]);
 
   useEffect(() => {
     const loadEvents = async () => {
-      const today = new Date().toISOString();
+      const now = new Date();
 
       const { data } = await supabase
         .from("events")
-        .select("id, title, slug, starts_at")
-        .gte("starts_at", today)
+        .select(
+          `
+        id,
+        title,
+        slug,
+        starts_at,
+        ends_at,
+        ticket_sales_start_at,
+        event_participants(count)
+      `,
+        )
         .order("starts_at", { ascending: true });
 
-      setEvents(data ?? []);
+      const future: EventListItem[] = [];
+      const past: EventListItem[] = [];
+      const active: EventListItem[] = [];
+
+      (data ?? []).forEach((event) => {
+        const start = new Date(event.starts_at);
+
+        const end = event.ends_at
+          ? new Date(event.ends_at)
+          : new Date(start.getTime() + 12 * 60 * 60 * 1000);
+
+        if (now >= start && now <= end) {
+          active.push(event);
+        } else if (now < start) {
+          future.push(event);
+        } else {
+          past.push(event);
+        }
+      });
+
+      // Activos arriba del todo
+      setFutureEvents([...active, ...future]);
+      setPastEvents(past);
     };
 
     loadEvents();
@@ -51,16 +84,30 @@ export default function GestionDashboard() {
       />
 
       {/* GRID EVENTOS */}
+
+      {/* FUTUROS */}
+      {futureEvents.length === 0 && (
+        <div className="text-center text-zinc-500 py-20">
+          No hay eventos futuros
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {events.map((event) => (
+        {futureEvents.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
       </div>
 
-      {events.length === 0 && (
-        <div className="text-center text-zinc-500 py-20">
-          No hay eventos futuros
-        </div>
+      {/* PASADOS */}
+      {pastEvents.length > 0 && (
+        <>
+          <h2 className="mt-10 mb-4 text-sm text-zinc-500">Eventos pasados</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 opacity-70">
+            {pastEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -68,22 +115,20 @@ export default function GestionDashboard() {
 
 function EventCard({ event }: { event: EventListItem }) {
   const router = useRouter();
-  const [count, setCount] = useState<number>(0);
   const [showDelete, setShowDelete] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const loadCount = async () => {
-      const { count } = await supabase
-        .from("event_participants")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", event.id);
-
-      setCount(count ?? 0);
-    };
-
-    loadCount();
-  }, [event.id]);
+  const ticketOpen = isTicketingOpen(event);
+  const now = new Date();
+  const end = event.ends_at
+    ? new Date(event.ends_at)
+    : new Date(new Date(event.starts_at).getTime() + 12 * 60 * 60 * 1000);
+  const start = new Date(event.starts_at);
+  const isActive = now >= start && now <= end;
+  const diffMs = start.getTime() - now.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+  const isStarted = diffMs <= 0;
+  const isClosed = now > end;
 
   const deleteEvent = async () => {
     setLoading(true);
@@ -133,21 +178,49 @@ function EventCard({ event }: { event: EventListItem }) {
           <CardContent className="p-5 flex flex-col gap-4">
             {/* HEADER */}
             <div>
-              <div className="text-lg font-semibold text-white tracking-tight">
-                {event.title}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="text-lg font-semibold text-white tracking-tight">
+                  {event.title}
+                </div>
+
+                {isClosed ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/30">
+                    Venta cerrada
+                  </span>
+                ) : ticketOpen ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    Venta abierta
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Venta futura
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <div className="flex items-center gap-2 text-xs text-zinc-400 flex-wrap">
                 <Calendar size={14} />
-                {new Date(event.starts_at).toLocaleDateString()} ·{" "}
-                {new Date(event.starts_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+
+                <span>
+                  {new Date(event.starts_at).toLocaleDateString()} ·{" "}
+                  {new Date(event.starts_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+
+                {!isStarted && (
+                  <span className="text-purple-400">
+                    ·{" "}
+                    {diffDays > 0
+                      ? `${diffDays} día${diffDays !== 1 ? "s" : ""}`
+                      : `${diffHours}h`}
+                  </span>
+                )}
               </div>
 
               <div className="text-xs text-zinc-500 mt-1">
-                {count} participantes
+                {event.event_participants?.[0]?.count ?? 0} participantes
               </div>
             </div>
 

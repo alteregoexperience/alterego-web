@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 
@@ -17,6 +17,7 @@ export default function CrearEventoPage() {
   const [description, setDescription] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [ticketsAt, setTicketsAt] = useState(new Date().toISOString());
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,6 +48,7 @@ export default function CrearEventoPage() {
         description,
         starts_at: startsAt,
         ends_at: endsAt || null,
+        ticket_sales_start_at: ticketsAt || new Date().toISOString(),
       }),
     });
 
@@ -113,6 +115,14 @@ export default function CrearEventoPage() {
             <label className="text-xs text-zinc-400">Fecha fin</label>
 
             <DateTimePicker value={endsAt} onChange={setEndsAt} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-400">
+              Fecha apertura tickets
+            </label>
+
+            <DateTimePicker value={ticketsAt} onChange={setTicketsAt} />
           </div>
 
           {error && <div className="text-red-400 text-sm">{error}</div>}

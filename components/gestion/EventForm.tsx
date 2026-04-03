@@ -17,6 +17,9 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
   const [description, setDescription] = useState(initial?.description ?? "");
   const [startsAt, setStartsAt] = useState(initial?.starts_at ?? "");
   const [endsAt, setEndsAt] = useState(initial?.ends_at ?? "");
+  const [ticketsAt, setTicketsAt] = useState(
+    initial?.ticket_sales_start_at ?? new Date().toISOString(),
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,6 +45,7 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
       description,
       starts_at: startsAt,
       ends_at: endsAt || null,
+      ticket_sales_start_at: ticketsAt,
     });
 
     setLoading(false);
@@ -78,6 +82,12 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
       <div className="space-y-2">
         <label className="text-xs text-zinc-400">Fecha fin</label>
         <DateTimePicker value={endsAt} onChange={setEndsAt} />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-zinc-400">Fecha apertura tickets</label>
+
+        <DateTimePicker value={ticketsAt} onChange={setTicketsAt} />
       </div>
 
       {error && <div className="text-red-400 text-sm">{error}</div>}

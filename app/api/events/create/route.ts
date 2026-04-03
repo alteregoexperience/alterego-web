@@ -18,7 +18,14 @@ export async function POST(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { title, starts_at, ends_at, location, description } = await req.json();
+  const {
+    title,
+    starts_at,
+    ends_at,
+    location,
+    description,
+    ticket_sales_start_at,
+  } = await req.json();
 
   if (!title || !starts_at) {
     return NextResponse.json(
@@ -53,6 +60,7 @@ export async function POST(req: Request) {
     ends_at: ends_at || null,
     location: location || null,
     description: description || null,
+    ticket_sales_start_at: ticket_sales_start_at || new Date().toISOString(),
     status: "upcoming",
   });
 
