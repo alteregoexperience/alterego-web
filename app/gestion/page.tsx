@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { EventListItem } from "@/types/Event";
 import GestionHeader from "@/components/gestion/GestionHeader";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,19 @@ function EventCard({ event }: { event: EventListItem }) {
             "
           >
             <Trash2 size={16} />
+          </button>
+
+          <button
+            onClick={() => router.push(`/gestion/${event.slug}/editar`)}
+            className="
+              absolute top-3 right-9
+              text-zinc-500
+              hover:text-purple-400
+              transition
+              opacity-60 hover:opacity-100
+            "
+          >
+            <Pencil size={16} />
           </button>
 
           <CardContent className="p-5 flex flex-col gap-4">
