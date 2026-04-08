@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import PublicBackground from "@/components/public/layout/PublicBackground";
 import HeroSection from "@/components/public/home/HeroSection";
 import UpcomingEventsSection from "@/components/public/home/UpcomingEventsSection";
@@ -13,7 +15,11 @@ export default async function Home() {
     <PublicBackground>
       <main className="flex flex-col gap-10">
         <HeroSection />
-        <UpcomingEventsSection events={events} />
+
+        <Suspense fallback={null}>
+          <UpcomingEventsSection events={events} />
+        </Suspense>
+
         <HowItWorksSection />
         <InfoSection />
       </main>
