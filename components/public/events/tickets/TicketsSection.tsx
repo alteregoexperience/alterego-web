@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Event } from "@/types/Event";
 import { supabase } from "@/lib/supabase";
+import { PurchaseBuyer } from "@/types/Ticket";
+import CheckoutForm from "./CheckoutForm";
 
 type TicketType = {
   id: string;
@@ -17,6 +19,13 @@ type TicketType = {
 export default function TicketsSection({ event }: { event: Event }) {
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [purchaseResult, setPurchaseResult] = useState<{
+    ticketsCount: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     const loadTickets = async () => {
@@ -31,6 +40,54 @@ export default function TicketsSection({ event }: { event: Event }) {
 
     loadTickets();
   }, [event.id]);
+
+  const hasSelection = Object.values(quantities).some((q) => q > 0);
+
+  const handlePurchase = async (buyer: PurchaseBuyer) => {
+    setLoading(true);
+
+    try {
+      const items = Object.entries(quantities)
+        .filter(([_, q]) => q > 0)
+        .map(([ticketTypeId, quantity]) => ({
+          ticketTypeId,
+          quantity,
+        }));
+
+      const res = await fetch("/api/purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: event.id,
+          buyer,
+          items,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Error en la compra");
+        return;
+      }
+
+      console.log("tickets", data.tickets);
+
+      setPurchaseResult({
+        ticketsCount: data.tickets.length,
+        total: data.order.total_amount,
+      });
+
+      setShowCheckout(false);
+      setQuantities({});
+    } catch (e) {
+      alert("Error inesperado");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const increase = (ticket: TicketType) => {
     setQuantities((prev) => {
@@ -61,6 +118,36 @@ export default function TicketsSection({ event }: { event: Event }) {
   };
 
   if (tickets.length === 0) return null;
+
+  if (purchaseResult) {
+    return (
+      <div className="mt-12">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center space-y-4">
+          <div className="text-green-500 text-3xl">✓</div>
+
+          <h3 className="text-xl font-semibold">
+            Compra realizada correctamente
+          </h3>
+
+          <p className="text-gray-400">
+            Recibirás tus entradas por email en unos segundos.
+          </p>
+
+          <div className="text-sm text-gray-300 space-y-1 pt-2">
+            <p>Entradas: {purchaseResult.ticketsCount}</p>
+            <p>Total: {purchaseResult.total}€</p>
+          </div>
+
+          <button
+            onClick={() => setPurchaseResult(null)}
+            className="mt-4 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-12">
@@ -126,6 +213,30 @@ export default function TicketsSection({ event }: { event: Event }) {
             </div>
           );
         })}
+        <div className="px-5 py-5 border-t border-white/10">
+          <button
+            disabled={!hasSelection}
+            onClick={() => setShowCheckout(true)}
+            className={`
+              w-full py-3 rounded-xl font-medium transition
+              ${
+                hasSelection
+                  ? "bg-purple-600 hover:bg-purple-700"
+                  : "bg-white/10 text-gray-500 cursor-not-allowed"
+              }
+            `}
+          >
+            Comprar
+          </button>
+        </div>
+
+        {showCheckout && (
+          <CheckoutForm
+            loading={loading}
+            onCancel={() => setShowCheckout(false)}
+            onSubmit={handlePurchase}
+          />
+        )}
       </div>
     </div>
   );
