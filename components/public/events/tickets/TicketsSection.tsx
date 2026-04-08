@@ -66,14 +66,23 @@ export default function TicketsSection({ event }: { event: Event }) {
         }),
       });
 
+      // si devuelve PDF (modo debug)
+      if (
+        res.ok &&
+        res.headers.get("content-type")?.includes("application/pdf")
+      ) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        window.open(url);
+        return;
+      }
+
       const data = await res.json();
 
       if (!res.ok) {
         alert(data.error || "Error en la compra");
         return;
       }
-
-      console.log("tickets", data.tickets);
 
       setPurchaseResult({
         ticketsCount: data.tickets.length,
@@ -82,6 +91,7 @@ export default function TicketsSection({ event }: { event: Event }) {
 
       setShowCheckout(false);
       setQuantities({});
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       alert("Error inesperado");
     } finally {
@@ -130,7 +140,11 @@ export default function TicketsSection({ event }: { event: Event }) {
           </h3>
 
           <p className="text-gray-400">
-            Recibirás tus entradas por email en unos segundos.
+            Hemos enviado tus entradas al correo indicado.
+          </p>
+
+          <p className="text-sm text-gray-500">
+            Revisa tu bandeja de entrada (y spam por si acaso).
           </p>
 
           <div className="text-sm text-gray-300 space-y-1 pt-2">
@@ -215,13 +229,13 @@ export default function TicketsSection({ event }: { event: Event }) {
         })}
         <div className="px-5 py-5 border-t border-white/10">
           <button
-            disabled={!hasSelection}
+            disabled={!hasSelection || loading}
             onClick={() => setShowCheckout(true)}
             className={`
               w-full py-3 rounded-xl font-medium transition
               ${
-                hasSelection
-                  ? "bg-purple-600 hover:bg-purple-700"
+                hasSelection && !loading
+                  ? "bg-purple-600 bg-purple-600"
                   : "bg-white/10 text-gray-500 cursor-not-allowed"
               }
             `}

@@ -11,10 +11,10 @@ type Props = {
 
 export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
   const [buyer, setBuyer] = useState<PurchaseBuyer>({
-    name: "Isaiah Quintana",
-    birthdate: "2002-07-26",
-    email: "isaiahquintanadev@gmail.com",
-    phone: "666198636",
+    name: "",
+    birthdate: "",
+    email: "",
+    phone: "",
   });
   const [acceptedAdults, setAcceptedAdults] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
@@ -36,17 +36,17 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
   const handleSubmit = () => {
     const errors: Record<string, boolean> = {};
 
-    // if (!buyer.name) errors.name = true;
-    // if (!buyer.birthdate) errors.birthdate = true;
+    if (!buyer.name) errors.name = true;
+    if (!buyer.birthdate) errors.birthdate = true;
 
-    // if (!buyer.email || !isValidEmail(buyer.email)) errors.email = true;
+    if (!buyer.email || !isValidEmail(buyer.email)) errors.email = true;
 
-    // if (!confirmEmail || buyer.email !== confirmEmail)
-    //   errors.confirmEmail = true;
+    if (!confirmEmail || buyer.email !== confirmEmail)
+      errors.confirmEmail = true;
 
-    // if (!buyer.phone || !isValidPhone(buyer.phone)) errors.phone = true;
+    if (!buyer.phone || !isValidPhone(buyer.phone)) errors.phone = true;
 
-    // if (!acceptedAdults) errors.acceptedAdults = true;
+    if (!acceptedAdults) errors.acceptedAdults = true;
 
     setFieldErrors(errors);
 
@@ -79,7 +79,11 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
             placeholder="Nombre y apellidos"
             className={inputClass("name")}
             value={buyer.name}
-            onChange={(e) => setBuyer({ ...buyer, name: e.target.value })}
+            disabled={loading}
+            onChange={(e) => {
+              setBuyer({ ...buyer, name: e.target.value });
+              setFieldErrors((prev) => ({ ...prev, acceptedAdults: false }));
+            }}
           />
         </div>
 
@@ -91,7 +95,11 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
             type="date"
             className={inputClass("birthdate")}
             value={buyer.birthdate}
-            onChange={(e) => setBuyer({ ...buyer, birthdate: e.target.value })}
+            disabled={loading}
+            onChange={(e) => {
+              setBuyer({ ...buyer, birthdate: e.target.value });
+              setFieldErrors((prev) => ({ ...prev, birthdate: false }));
+            }}
           />
         </div>
 
@@ -102,7 +110,11 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
             placeholder="nombre@email.com"
             className={inputClass("email")}
             value={buyer.email}
-            onChange={(e) => setBuyer({ ...buyer, email: e.target.value })}
+            disabled={loading}
+            onChange={(e) => {
+              setBuyer({ ...buyer, email: e.target.value });
+              setFieldErrors((prev) => ({ ...prev, email: false }));
+            }}
           />
         </div>
 
@@ -114,9 +126,12 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
             type="email"
             placeholder="Repite el email"
             className={inputClass("confirmEmail")}
-            // value={confirmEmail}
-            value={"isaiahquintanadev@gmail.com"}
-            onChange={(e) => setConfirmEmail(e.target.value)}
+            value={confirmEmail}
+            disabled={loading}
+            onChange={(e) => {
+              setConfirmEmail(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, confirmEmail: false }));
+            }}
             onPaste={blockPaste}
           />
         </div>
@@ -127,7 +142,11 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
             placeholder="Ej: 600123123"
             className={inputClass("phone")}
             value={buyer.phone}
-            onChange={(e) => setBuyer({ ...buyer, phone: e.target.value })}
+            disabled={loading}
+            onChange={(e) => {
+              setBuyer({ ...buyer, phone: e.target.value });
+              setFieldErrors((prev) => ({ ...prev, phone: false }));
+            }}
           />
         </div>
       </div>
@@ -136,7 +155,11 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
         <input
           type="checkbox"
           checked={acceptedAdults}
-          onChange={(e) => setAcceptedAdults(e.target.checked)}
+          disabled={loading}
+          onChange={(e) => {
+            setAcceptedAdults(e.target.checked);
+            setFieldErrors((prev) => ({ ...prev, name: false }));
+          }}
           className={`mt-1 accent-purple-600 ${
             fieldErrors.acceptedAdults ? "ring-2 ring-red-500" : ""
           }`}
@@ -161,7 +184,14 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="flex-1 bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-medium"
+          className={`
+  flex-1 py-3 rounded-xl font-medium
+  ${
+    loading
+      ? "bg-purple-600 opacity-70 cursor-not-allowed"
+      : "bg-purple-600 bg-purple-600"
+  }
+`}
         >
           {loading ? "Procesando..." : "Confirmar compra"}
         </button>

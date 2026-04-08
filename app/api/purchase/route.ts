@@ -4,6 +4,7 @@ import { PurchasePayload, Ticket } from "@/types/Ticket";
 import * as QRCode from "qrcode";
 import { resend } from "@/lib/resend";
 import { renderPurchaseEmail } from "@/lib/emailPurchaseTemplate";
+import { generateTicketPdf } from "@/lib/generateTicketPdf";
 
 function calculateAge(birthdate: string) {
   const today = new Date();
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
         const available = ticket.stock - (ticket.sold || 0);
 
         if (item.quantity > available) {
+          console.error("Sin stock");
           return NextResponse.json(
             { error: "Stock insuficiente" },
             { status: 400 },
@@ -105,6 +107,12 @@ export async function POST(req: Request) {
         status: "completed",
       })
       .select()
+      .single();
+
+    const { data: event } = await supabaseAdmin
+      .from("events")
+      .select("title, description, location, starts_at, ends_at")
+      .eq("id", eventId)
       .single();
 
     if (orderError || !order) {
@@ -156,18 +164,62 @@ export async function POST(req: Request) {
       }),
     );
 
-    // Envio de email
+    // generar PDFs por ticket
+    const attachments = await Promise.all(
+      insertedTickets.map(async (ticket, index) => {
+        const ticketType = ticketTypes.find(
+          (t) => t.id === ticket.ticket_type_id,
+        );
+
+        const pdfBytes = await generateTicketPdf({
+          ticketId: `Ref: ${ticket.qr_code}`,
+          buyerName: name,
+          buyerEmail: email,
+          buyerPhone: phone,
+          eventName: event?.title,
+          eventLocation: event?.location,
+          eventDate: new Date(event?.starts_at).toLocaleDateString("es-ES"),
+          eventTime: `${new Date(event?.starts_at).toLocaleTimeString("es-ES", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })} - ${new Date(event?.ends_at).toLocaleTimeString("es-ES", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`,
+          price: ticketType?.price || 0,
+          ticketType: ticketType?.name || "",
+          ticketNumber: index + 1,
+          totalTickets: insertedTickets.length,
+        });
+
+        const sanitize = (text: string) =>
+          text
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+
+        const fileName = `${sanitize(event?.title || "alter_ego")}_${sanitize(name)}_${index + 1}.pdf`;
+
+        return {
+          filename: fileName,
+          content: Buffer.from(pdfBytes),
+        };
+      }),
+    );
+
+    // email
     const html = renderPurchaseEmail({
       name,
-      tickets: ticketsWithQr,
     });
 
-    // console.log(html);
     const { data, error: emailError } = await resend.emails.send({
       from: "ALTER EGO <tickets@alteregoexperience.org>",
-      to: "a.ego.experience@gmail.com",
+      to: email,
       subject: "ALTER EGO - Tus entradas",
       html,
+      attachments,
     });
 
     if (emailError) {
@@ -181,6 +233,16 @@ export async function POST(req: Request) {
       await supabaseAdmin.rpc("increment_ticket_sold", {
         ticket_id: item.ticketTypeId,
         qty: item.quantity,
+      });
+    }
+
+    // DEBUG DESARROLLO → ver PDF directamente
+    if (process.env.NODE_ENV === "development" && attachments.length > 0) {
+      return new NextResponse(attachments[0].content, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${attachments[0].filename}"`,
+        },
       });
     }
 

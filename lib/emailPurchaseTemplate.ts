@@ -1,13 +1,7 @@
 import { getBaseUrl } from "@/lib/getBaseUrl";
 
-type TicketEmail = {
-  qr: string;
-  qr_code: string;
-};
-
 type Params = {
   name: string;
-  tickets: TicketEmail[];
 };
 
 const baseUrl = getBaseUrl();
@@ -15,10 +9,10 @@ const baseUrl = getBaseUrl();
 const logo = `${baseUrl}/pegatina_alter_ego_solo_letras.png`;
 const tortuga = `${baseUrl}/tortuga_blanca.png`;
 
-export function renderPurchaseEmail({ name, tickets }: Params) {
+export function renderPurchaseEmail({ name }: Params) {
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="
-  background: radial-gradient(circle at top, #1a0826 0%, #07070a 60%);
+  background: radial-gradient(circle at top, #140626 0%, #07070a 60%);
   padding:40px 0;
   font-family:Arial,Helvetica,sans-serif;
 ">
@@ -53,7 +47,7 @@ export function renderPurchaseEmail({ name, tickets }: Params) {
 
 <p style="
   margin:0;
-  color:#a78bfa;
+  color:#5E1CA3;
   font-size:12px;
   letter-spacing:2px;
   text-transform:uppercase;
@@ -81,58 +75,48 @@ Hola <strong>${name}</strong>,
 </p>
 
 <p style="color:#9ca3af;font-size:14px;margin:0">
-Estas son tus entradas. Preséntalas en el acceso del evento.
+Hemos recibido tu compra correctamente. Tus entradas se adjuntan en este correo.
 </p>
 
 </td>
 </tr>
 
-${tickets
-  .map(
-    (t, i) => `
+<!-- INFO BOX -->
 <tr>
-<td style="padding-top:28px">
+<td style="padding-top:24px">
 
 <table width="100%" cellpadding="0" cellspacing="0" style="
   background:linear-gradient(180deg,#0f0f17,#0a0a0f);
   border-radius:14px;
   padding:22px;
-  text-align:center;
   border:1px solid #2b1c3d;
-  box-shadow:0 0 25px rgba(168,85,247,0.08);
 ">
 
 <tr>
 <td>
 
 <p style="
-  margin:0 0 14px 0;
-  color:#a78bfa;
-  font-size:11px;
-  letter-spacing:1.5px;
+  margin:0 0 8px 0;
+  color:#ffffff;
+  font-size:14px;
 ">
-ENTRADA ${i + 1}
+🎟️ Tus entradas están adjuntas en formato PDF
 </p>
 
-<img 
-  src="${baseUrl}/api/qr/${t.qr_code}"
-  width="180" 
-  height="180"
-  style="
-    display:block;
-    margin:0 auto;
-    border-radius:10px;
-    background:white;
-    padding:6px;
-  "
-/>
+<p style="
+  margin:0 0 8px 0;
+  color:#9ca3af;
+  font-size:13px;
+">
+Puedes mostrarlas desde el móvil o imprimirlas.
+</p>
 
 <p style="
-  margin:14px 0 0 0;
-  color:#6b7280;
-  font-size:11px;
+  margin:0;
+  color:#9ca3af;
+  font-size:13px;
 ">
-ID: ${t.qr_code}
+Cada entrada contiene un código QR único válido para una sola persona.
 </p>
 
 </td>
@@ -142,12 +126,10 @@ ID: ${t.qr_code}
 
 </td>
 </tr>
-`,
-  )
-  .join("")}
 
+<!-- WARNING -->
 <tr>
-<td style="padding-top:28px">
+<td style="padding-top:20px">
 
 <table width="100%" cellpadding="0" cellspacing="0" style="
   background:#0a0a0f;
@@ -165,14 +147,29 @@ ID: ${t.qr_code}
   color:#9ca3af;
   margin:0;
 ">
-Recuerda llevar tu <strong style="color:#fff">DNI</strong>.  
-Acceso solo para <strong style="color:#a78bfa">mayores de 18 años</strong>.
+🪪 Recuerda llevar tu <strong style="color:#fff">DNI</strong><br/>
+Acceso solo para <strong style="color:#5E1CA3">mayores de 18 años</strong>
 </p>
 
 </td>
 </tr>
 
 </table>
+
+</td>
+</tr>
+
+<!-- FOOTER -->
+<tr>
+<td align="center" style="padding-top:26px">
+
+<p style="
+  font-size:11px;
+  color:#6b7280;
+  margin:0;
+">
+@alterego.experience
+</p>
 
 </td>
 </tr>
