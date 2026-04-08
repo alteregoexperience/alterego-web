@@ -10,10 +10,13 @@ export async function GET(
   const { code } = await params;
 
   const buffer = await QRCode.toBuffer(code);
+  const uint8 = new Uint8Array(buffer);
 
-  return new NextResponse(new Uint8Array(buffer), {
+  return new NextResponse(uint8, {
     headers: {
       "Content-Type": "image/png",
+      "Content-Length": uint8.length.toString(),
+      "Content-Disposition": "inline",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
