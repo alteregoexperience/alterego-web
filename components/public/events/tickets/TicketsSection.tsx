@@ -54,7 +54,7 @@ export default function TicketsSection({ event }: { event: Event }) {
           quantity,
         }));
 
-      const res = await fetch("/api/purchase", {
+      const res = await fetch("/api/checkout/session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,32 +66,14 @@ export default function TicketsSection({ event }: { event: Event }) {
         }),
       });
 
-      // si devuelve PDF (modo debug)
-      if (
-        res.ok &&
-        res.headers.get("content-type")?.includes("application/pdf")
-      ) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url);
-        return;
-      }
-
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Error en la compra");
+        alert(data.error || "Error al iniciar el pago");
         return;
       }
 
-      setPurchaseResult({
-        ticketsCount: data.tickets.length,
-        total: data.order.total_amount,
-      });
-
-      setShowCheckout(false);
-      setQuantities({});
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.location.href = data.url;
     } catch (e) {
       alert("Error inesperado");
     } finally {

@@ -11,6 +11,8 @@ export type EventTicketType = {
   created_at: string | null;
 };
 
+export type OrderStatus = "pending" | "paid" | "failed" | "cancelled";
+
 export type Order = {
   id: string;
   event_id: string;
@@ -21,7 +23,11 @@ export type Order = {
   buyer_phone: string;
 
   total_amount: number;
-  status: string;
+  status: OrderStatus;
+
+  stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  fulfilled_at: string | null;
 
   created_at: string;
 };
