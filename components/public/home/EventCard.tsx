@@ -12,48 +12,87 @@ export default function EventCard({
   event: Event;
   onClick: (event: Event) => void;
 }) {
+  const now = new Date();
+
   const formattedDate = format(new Date(event.starts_at), "d MMMM · HH:mm", {
     locale: es,
   });
 
-  const isTicketingOpen =
-    event.ticket_sales_start_at &&
-    new Date(event.ticket_sales_start_at) <= new Date();
+  const salesStart = event.ticket_sales_start_at
+    ? new Date(event.ticket_sales_start_at)
+    : null;
 
+  const isSaleUpcoming = salesStart && salesStart > now;
+  const isSaleOpen = !salesStart || salesStart <= now;
+
+  console.log(event.cover_image_url);
   return (
     <motion.div
       onClick={() => onClick(event)}
-      whileHover={{ y: -6 }}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur hover:border-purple-400 transition cursor-pointer"
+      className="group rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur hover:border-purple-500/60 transition cursor-pointer"
     >
-      {event.cover_image_url && (
-        <div className="relative h-40 overflow-hidden">
-          <img
-            src={event.cover_image_url}
-            alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-          />
+      {/* 🖼️ IMAGE */}
+      <div className="relative aspect-[3/4] overflow-hidden">
+        <img
+          src={
+            event.cover_image_url && event.cover_image_url.trim() !== ""
+              ? event.cover_image_url
+              : "https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=1600&auto=format&fit=crop"
+          }
+          alt={event.title}
+          onError={(e) => {
+            e.currentTarget.src =
+              "https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=1600&auto=format&fit=crop";
+          }}
+          className="w-full h-full object-cover"
+        />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+        {/* overlay elegante */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-          {isTicketingOpen && (
-            <div className="absolute top-3 left-3 text-xs px-3 py-1 rounded-full bg-purple-600/90 backdrop-blur">
-              Ticketing abierto
+        {/* 🔥 BADGE */}
+        <div className="absolute top-3 left-3">
+          {isSaleUpcoming ? (
+            <div className="text-[11px] px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur">
+              Venta desde {format(salesStart!, "d MMM · HH:mm", { locale: es })}
+            </div>
+          ) : isSaleOpen ? (
+            <div className="text-[11px] px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur">
+              Tickets disponibles
+            </div>
+          ) : (
+            <div className="text-[11px] px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 backdrop-blur">
+              Venta cerrada
             </div>
           )}
         </div>
-      )}
 
-      <div className="p-6">
-        <h3 className="text-lg font-semibold">{event.title}</h3>
+        {/* 🧠 INFO SOBRE IMAGEN */}
+        <div className="absolute bottom-3 left-4 right-4">
+          <h3 className="text-white text-lg font-semibold leading-tight">
+            {event.title}
+          </h3>
 
-        <p className="text-gray-400 text-sm mt-2">
-          {formattedDate}
-          {event.location && ` · ${event.location}`}
-        </p>
+          <p className="text-sm text-gray-300 mt-1">
+            {formattedDate}
+            {event.location && ` · ${event.location}`}
+          </p>
+        </div>
+      </div>
 
-        <span className="inline-block mt-4 text-sm text-purple-400 group-hover:text-purple-300 transition">
+      {/* 📄 FOOTER */}
+      <div className="px-5 py-4 flex items-center justify-between">
+        <span className="text-xs text-gray-400">
+          {isSaleUpcoming
+            ? "Próximamente"
+            : isSaleOpen
+              ? "Disponible"
+              : "Finalizado"}
+        </span>
+
+        <span className="text-sm text-purple-400 group-hover:text-purple-300 transition">
           Ver evento →
         </span>
       </div>

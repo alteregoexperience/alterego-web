@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     location,
     description,
     ticket_sales_start_at,
+    cover_image_url,
   } = await req.json();
 
   if (!title || !starts_at) {
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
     location: location || null,
     description: description || null,
     ticket_sales_start_at: ticket_sales_start_at || new Date().toISOString(),
+    cover_image_url: cover_image_url || null,
     status: "upcoming",
   });
 

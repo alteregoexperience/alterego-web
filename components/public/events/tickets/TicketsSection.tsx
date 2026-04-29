@@ -5,6 +5,8 @@ import { Event } from "@/types/Event";
 import { supabase } from "@/lib/supabase";
 import { PurchaseBuyer } from "@/types/Ticket";
 import CheckoutForm from "./CheckoutForm";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 type TicketType = {
   id: string;
@@ -26,6 +28,13 @@ export default function TicketsSection({ event }: { event: Event }) {
     ticketsCount: number;
     total: number;
   } | null>(null);
+
+  const now = new Date();
+  const salesStart = event.ticket_sales_start_at
+    ? new Date(event.ticket_sales_start_at)
+    : null;
+
+  const isSaleOpen = !salesStart || salesStart <= now;
 
   useEffect(() => {
     const loadTickets = async () => {
@@ -211,18 +220,20 @@ export default function TicketsSection({ event }: { event: Event }) {
         })}
         <div className="px-5 py-5 border-t border-white/10">
           <button
-            disabled={!hasSelection || loading}
+            disabled={!hasSelection || loading || !isSaleOpen}
             onClick={() => setShowCheckout(true)}
             className={`
-              w-full py-3 rounded-xl font-medium transition
-              ${
-                hasSelection && !loading
-                  ? "bg-purple-600 bg-purple-600"
-                  : "bg-white/10 text-gray-500 cursor-not-allowed"
-              }
-            `}
+    w-full py-3 rounded-xl font-medium transition
+    ${
+      hasSelection && !loading && isSaleOpen
+        ? "bg-purple-600 hover:bg-purple-700"
+        : "bg-white/10 text-gray-500 cursor-not-allowed"
+    }
+  `}
           >
-            Comprar
+            {isSaleOpen
+              ? "Comprar"
+              : `Disponible ${format(salesStart!, "d MMM · HH:mm", { locale: es })}`}
           </button>
         </div>
 
