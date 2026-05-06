@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
   const isAuth = await checkAuth();
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   }
   const { name, instagram, slug } = await req.json();
 
-  const { data: event } = await supabase
+  const { data: event } = await supabaseAdmin
     .from("events")
     .select("id")
     .eq("slug", slug)
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
   // comprobar duplicado EXACTO nombre + instagram
 
-  let query = supabase
+  let query = supabaseAdmin
     .from("participants")
     .select("id")
     .eq("name", normalizedName);
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data: inserted, error: insertError } = await supabase
+  const { data: inserted, error: insertError } = await supabaseAdmin
     .from("participants")
     .insert({
       name: normalizedName,
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  const { error: relationError } = await supabase
+  const { error: relationError } = await supabaseAdmin
     .from("event_participants")
     .insert({
       event_id: event.id,

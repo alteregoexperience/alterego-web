@@ -8,7 +8,7 @@ import { useState } from "react";
 
 const links = [
   { href: "/", label: "Inicio" },
-  { href: "/#upcoming-events", label: "Eventos" },
+  { href: "/eventos", label: "Eventos" },
   { href: "/terminos-condiciones", label: "Terminos" },
   { href: "/politica-cookies", label: "Cookies" },
 ];
@@ -57,7 +57,7 @@ export default function PublicNav() {
         </div>
 
         <Link
-          href="/#upcoming-events"
+          href="/eventos"
           className="hidden rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_24px_rgba(168,85,247,0.28)] transition hover:bg-purple-500 md:inline-flex"
         >
           Ver entradas

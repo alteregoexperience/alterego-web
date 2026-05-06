@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 function generateSlug(title: string) {
   return title
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   let counter = 1;
 
   while (true) {
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from("events")
       .select("id")
       .eq("slug", slug)
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     counter++;
   }
 
-  const { error } = await supabase.from("events").insert({
+  const { error } = await supabaseAdmin.from("events").insert({
     title: title.trim(),
     slug,
     starts_at,

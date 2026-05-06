@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import SectionContainer from "./SectionContainer";
 import EventCard from "./EventCard";
@@ -37,24 +38,35 @@ export default function UpcomingEventsSection({ events }: { events: Event[] }) {
       <section id="upcoming-events">
         <SectionContainer>
           <h2 className="text-3xl md:text-4xl font-semibold mb-3">
-            Próximos eventos
+            Proximos eventos
           </h2>
 
           <p className="text-gray-400 mb-10 max-w-xl">
-            Descubre los próximos eventos y participa en la experiencia ALTER
+            Descubre los proximos eventos y participa en la experiencia ALTER
             EGO.
           </p>
 
           {events.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
-              No hay eventos programados todavía.
+              No hay eventos programados todavia.
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} onClick={openEvent} />
-              ))}
-            </div>
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {events.map((event) => (
+                  <EventCard key={event.id} event={event} onClick={openEvent} />
+                ))}
+              </div>
+
+              <div className="mt-10 flex justify-center">
+                <Link
+                  href="/eventos"
+                  className="rounded-2xl border border-purple-400/30 bg-purple-500/10 px-6 py-3 text-sm font-semibold text-purple-100 transition hover:bg-purple-600 hover:text-white"
+                >
+                  Ver todos los eventos
+                </Link>
+              </div>
+            </>
           )}
         </SectionContainer>
       </section>

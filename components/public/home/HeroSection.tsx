@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import SectionContainer from "./SectionContainer";
 
 export default function HeroSection() {
@@ -34,16 +35,12 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.6 }}
         >
-          <button
-            onClick={() =>
-              document
-                .getElementById("upcoming-events")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-            className="mt-10 px-8 py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 transition font-semibold shadow-[0_0_25px_rgba(168,85,247,0.35)]"
+          <Link
+            href="/eventos"
+            className="mt-10 inline-flex px-8 py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 transition font-semibold shadow-[0_0_25px_rgba(168,85,247,0.35)]"
           >
-            Ver próximos eventos
-          </button>
+            Ver proximos eventos
+          </Link>
         </motion.div>
       </div>
     </SectionContainer>

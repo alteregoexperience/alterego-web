@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import {
   ArrowDown,
   ArrowUp,
@@ -49,31 +48,31 @@ export default function TicketsPage() {
     unlimited: false,
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!slug) return;
+  const refreshTickets = useCallback(async () => {
+    if (!slug) return;
 
-      const { data: event } = await supabase
-        .from("events")
-        .select("id")
-        .eq("slug", slug)
-        .single();
+    const response = await fetch(`/api/ticket-types?slug=${slug}`, {
+      cache: "no-store",
+    });
 
-      if (!event) return;
+    const data = await response.json();
 
-      setEventId(event.id);
+    if (!response.ok) {
+      console.error(data?.error || "Error cargando entradas");
+      return;
+    }
 
-      const { data: tickets } = await supabase
-        .from("event_ticket_types")
-        .select("*")
-        .eq("event_id", event.id)
-        .order("order_index", { ascending: true });
-
-      setTickets(tickets || []);
-    };
-
-    loadData();
+    setEventId(data.eventId);
+    setTickets(data.tickets || []);
   }, [slug]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      refreshTickets();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [refreshTickets]);
 
   const startEdit = (ticket: TicketType) => {
     setEditingId(ticket.id);
@@ -89,15 +88,18 @@ export default function TicketsPage() {
   const saveEdit = async () => {
     if (!editingId) return;
 
-    await supabase
-      .from("event_ticket_types")
-      .update({
+    await fetch("/api/ticket-types", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingId,
         name: editForm.name,
-        description: editForm.description || null,
-        price: Number(editForm.price),
-        stock: editForm.unlimited ? null : Number(editForm.stock),
-      })
-      .eq("id", editingId);
+        description: editForm.description,
+        price: editForm.price,
+        stock: editForm.stock,
+        unlimited: editForm.unlimited,
+      }),
+    });
 
     setEditingId(null);
     setEditForm({
@@ -109,18 +111,6 @@ export default function TicketsPage() {
     });
 
     refreshTickets();
-  };
-
-  const refreshTickets = async () => {
-    if (!eventId) return;
-
-    const { data } = await supabase
-      .from("event_ticket_types")
-      .select("*")
-      .eq("event_id", eventId)
-      .order("order_index", { ascending: true });
-
-    setTickets(data || []);
   };
 
   const cancelEdit = () => {
@@ -137,14 +127,18 @@ export default function TicketsPage() {
   const createTicket = async () => {
     if (!eventId) return;
 
-    await supabase.from("event_ticket_types").insert({
-      event_id: eventId,
-      name: form.name,
-      description: form.description || null,
-      price: Number(form.price),
-      stock: form.unlimited ? null : Number(form.stock),
-      sold: 0,
-      order_index: tickets.length,
+    await fetch("/api/ticket-types", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId,
+        name: form.name,
+        description: form.description,
+        price: form.price,
+        stock: form.stock,
+        unlimited: form.unlimited,
+        orderIndex: tickets.length,
+      }),
     });
 
     setShowCreate(false);
@@ -160,7 +154,24 @@ export default function TicketsPage() {
   };
 
   const deleteTicket = async (id: string) => {
-    await supabase.from("event_ticket_types").delete().eq("id", id);
+    await fetch("/api/ticket-types", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+
+    refreshTickets();
+  };
+
+  const updateOrder = async (
+    updates: Array<{ id: string; order_index: number }>,
+  ) => {
+    await fetch("/api/ticket-types", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderUpdates: updates }),
+    });
+
     refreshTickets();
   };
 
@@ -169,17 +180,10 @@ export default function TicketsPage() {
 
     const previousTicket = tickets[index - 1];
 
-    await supabase
-      .from("event_ticket_types")
-      .update({ order_index: index - 1 })
-      .eq("id", ticket.id);
-
-    await supabase
-      .from("event_ticket_types")
-      .update({ order_index: index })
-      .eq("id", previousTicket.id);
-
-    refreshTickets();
+    await updateOrder([
+      { id: ticket.id, order_index: index - 1 },
+      { id: previousTicket.id, order_index: index },
+    ]);
   };
 
   const moveDown = async (ticket: TicketType, index: number) => {
@@ -187,22 +191,14 @@ export default function TicketsPage() {
 
     const nextTicket = tickets[index + 1];
 
-    await supabase
-      .from("event_ticket_types")
-      .update({ order_index: index + 1 })
-      .eq("id", ticket.id);
-
-    await supabase
-      .from("event_ticket_types")
-      .update({ order_index: index })
-      .eq("id", nextTicket.id);
-
-    refreshTickets();
+    await updateOrder([
+      { id: ticket.id, order_index: index + 1 },
+      { id: nextTicket.id, order_index: index },
+    ]);
   };
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Tipos de entrada</h2>
 
@@ -215,7 +211,6 @@ export default function TicketsPage() {
         </Button>
       </div>
 
-      {/* CREATE FORM */}
       {showCreate && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
           <input
@@ -226,7 +221,7 @@ export default function TicketsPage() {
           />
 
           <input
-            placeholder="Descripción"
+            placeholder="Descripcion"
             className="w-full bg-zinc-800 rounded-lg px-3 py-2 text-sm"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -234,7 +229,7 @@ export default function TicketsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <input
-              placeholder="Precio €"
+              placeholder="Precio EUR"
               type="number"
               className="bg-zinc-800 rounded-lg px-3 py-2 text-sm"
               value={form.price}
@@ -275,7 +270,6 @@ export default function TicketsPage() {
         </div>
       )}
 
-      {/* LIST */}
       <div className="space-y-3">
         {tickets.map((ticket, index) => {
           const available =
@@ -301,7 +295,7 @@ export default function TicketsPage() {
                 />
 
                 <input
-                  placeholder="Descripción"
+                  placeholder="Descripcion"
                   className="w-full bg-zinc-800 rounded-lg px-3 py-2 text-sm text-white"
                   value={editForm.description}
                   onChange={(e) =>
@@ -311,7 +305,7 @@ export default function TicketsPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <input
-                    placeholder="Precio €"
+                    placeholder="Precio EUR"
                     type="number"
                     className="bg-zinc-800 rounded-lg px-3 py-2 text-sm text-white"
                     value={editForm.price}
@@ -385,14 +379,14 @@ export default function TicketsPage() {
                   {ticket.stock === null
                     ? "Stock ilimitado"
                     : `Disponible: ${available}`}
-                  {" · "}
+                  {" - "}
                   Vendidas: {ticket.sold || 0}
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="text-lg font-semibold text-white">
-                  {ticket.price}€
+                  {ticket.price} EUR
                 </div>
 
                 <button
