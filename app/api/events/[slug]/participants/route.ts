@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type EventParticipantRow = {
   points: number;
-  participants:
+  participant:
     | {
         id: string;
         name: string;
@@ -49,7 +49,7 @@ export async function GET(
     .select(
       `
       points,
-      participants (
+      participant:participants!event_participants_participant_id_fkey (
         id,
         name,
         instagram
@@ -66,7 +66,7 @@ export async function GET(
 
   const participants = ((data ?? []) as unknown as EventParticipantRow[])
     .map((row) => {
-      const participant = firstRelation(row.participants);
+      const participant = firstRelation(row.participant);
 
       if (!participant) return null;
 
@@ -77,7 +77,16 @@ export async function GET(
         points: row.points,
       };
     })
-    .filter((participant) => participant !== null);
+    .filter(
+      (
+        participant,
+      ): participant is {
+        id: string;
+        name: string;
+        instagram: string;
+        points: number;
+      } => participant !== null,
+    );
 
   if (order === "name") {
     participants.sort((a, b) => a.name.localeCompare(b.name, "es"));
