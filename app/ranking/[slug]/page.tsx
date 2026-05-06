@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion, LayoutGroup } from "framer-motion";
-import { DEFAULT_EVENT_ID, Participant } from "@/types/Participant";
+import { Participant } from "@/types/Participant";
 import { useParams } from "next/navigation";
 
 export default function RankingPage() {
@@ -44,18 +44,30 @@ export default function RankingPage() {
 
   useEffect(() => {
     const loadEvent = async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id")
-        .eq("slug", slug)
-        .single();
+      const response = await fetch(`/api/events/${slug}/participants`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
 
-      if (data?.id) {
-        setEventId(data.id);
-      } else {
-        console.warn("Event not found, using DEFAULT_EVENT_ID");
-        setEventId(DEFAULT_EVENT_ID);
+      if (!response.ok) {
+        console.error(data?.error || "Error cargando ranking");
+        return;
       }
+
+      setEventId(data.eventId);
+      const participantsData: Participant[] = (data.participants ?? []).map(
+        (participant: Participant) => ({
+          ...participant,
+          name: normalizeName(participant.name),
+        }),
+      );
+
+      setParticipants(participantsData);
+      prevTop3Ref.current = participantsData.slice(0, 3);
+
+      requestAnimationFrame(() => {
+        calculateVisibleParticipants(participantsData);
+      });
     };
 
     loadEvent();
@@ -64,30 +76,22 @@ export default function RankingPage() {
   useEffect(() => {
     if (!eventId) return;
     const loadRanking = async () => {
-      const { data, error } = await supabase
-        .from("event_participants")
-        .select(
-          `
-    points,
-    participants (
-      id,
-      name,
-      instagram
-    )
-  `,
-        )
-        .eq("event_id", eventId)
-        .order("points", { ascending: false })
-        .limit(500);
+      const response = await fetch(`/api/events/${slug}/participants`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
 
-      const participantsData: Participant[] = (data ?? [])
-        .map((p: any) => ({
-          id: p.participants?.id,
-          name: normalizeName(p.participants?.name ?? ""),
-          instagram: p.participants?.instagram ?? "",
-          points: p.points,
-        }))
-        .filter((p) => p.id);
+      if (!response.ok) {
+        console.error(data?.error || "Error actualizando ranking");
+        return;
+      }
+
+      const participantsData: Participant[] = (data.participants ?? []).map(
+        (participant: Participant) => ({
+          ...participant,
+          name: normalizeName(participant.name),
+        }),
+      );
 
       setParticipants(participantsData);
 
@@ -124,40 +128,14 @@ export default function RankingPage() {
       )
       .subscribe();
 
-    async function handleRealtime() {
-      const { data } = await supabase
-        .from("event_participants")
-        .select(
-          `
-      points,
-      participants (
-        id,
-        name,
-        instagram
-      )
-    `,
-        )
-        .eq("event_id", eventId)
-        .order("points", { ascending: false });
-
-      const mapped = (data ?? []).map((row: any) => ({
-        id: row.participants.id,
-        name: normalizeName(row.participants.name),
-        instagram: row.participants.instagram ?? "",
-        points: row.points,
-      }));
-
-      setParticipants(mapped);
-
-      requestAnimationFrame(() => {
-        calculateVisibleParticipants(mapped);
-      });
+    function handleRealtime() {
+      loadRanking();
     }
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId]);
+  }, [eventId, slug]);
 
   // 🔥 RESET ANIMACIÓN
   useEffect(() => {

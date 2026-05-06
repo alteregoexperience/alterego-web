@@ -12,7 +12,7 @@ import { Plus } from "lucide-react";
 
 import { useParams } from "next/navigation";
 
-import { DEFAULT_EVENT_ID, Participant } from "@/types/Participant";
+import { Participant } from "@/types/Participant";
 
 export default function ParticipantesPage() {
   const params = useParams();
@@ -27,73 +27,53 @@ export default function ParticipantesPage() {
   useEffect(() => {
     if (!slug) return;
 
-    const loadEvent = async () => {
-      const { data } = await supabase
-        .from("events")
-        .select("id")
-        .eq("slug", slug)
-        .single();
+    const fetchParticipants = async () => {
+      const response = await fetch(`/api/events/${slug}/participants?order=name`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
 
-      if (data?.id) {
-        setEventId(data.id);
-      } else {
-        setEventId(DEFAULT_EVENT_ID);
+      if (!response.ok) {
+        console.error(data?.error || "Error cargando participantes");
+        return;
       }
+
+      setEventId(data.eventId);
+      setParticipants(data.participants ?? []);
     };
 
-    loadEvent();
+    fetchParticipants();
   }, [slug]);
 
   useEffect(() => {
     if (!eventId) return;
+
     const fetchParticipants = async () => {
-      const { data, error } = await supabase
-        .from("event_participants")
-        .select(
-          `
-  points,
-  participants (
-    id,
-    name,
-    instagram
-  )
-`,
-        )
-        .eq("event_id", eventId)
-        .order("participants(name)");
+      const response = await fetch(`/api/events/${slug}/participants?order=name`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
 
-      if (!error) {
-        const mapped = (data ?? []).map((row: any) => ({
-          id: row.participants.id,
-          name: row.participants.name,
-          instagram: row.participants.instagram ?? "",
-          points: row.points,
-        }));
-
-        setParticipants(mapped);
+      if (!response.ok) {
+        console.error(data?.error || "Error actualizando participantes");
+        return;
       }
+
+      setParticipants(data.participants ?? []);
     };
 
-    fetchParticipants();
-
     const channel = supabase
-      .channel("participants-changes")
+      .channel(`participants-${eventId}`)
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "event_participants",
           filter: `event_id=eq.${eventId}`,
         },
-        (payload) => {
-          setParticipants((prev) =>
-            prev.map((p) =>
-              p.id === payload.new.participant_id
-                ? { ...p, points: payload.new.points }
-                : p,
-            ),
-          );
+        () => {
+          fetchParticipants();
         },
       )
       .subscribe();
@@ -101,7 +81,7 @@ export default function ParticipantesPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId]);
+  }, [eventId, slug]);
 
   const updatePoints = async (id: string, delta: number) => {
     if (updatingRef.current) return;
