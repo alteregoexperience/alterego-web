@@ -7,6 +7,7 @@ import { PurchaseBuyer } from "@/types/Ticket";
 import CheckoutForm from "./CheckoutForm";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Bell, CheckCircle, Mail } from "lucide-react";
 
 type TicketType = {
   id: string;
@@ -23,6 +24,10 @@ export default function TicketsSection({ event }: { event: Event }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [reminderEmail, setReminderEmail] = useState("");
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderError, setReminderError] = useState("");
+  const [reminderSuccess, setReminderSuccess] = useState(false);
 
   const [purchaseResult, setPurchaseResult] = useState<{
     ticketsCount: number;
@@ -52,12 +57,57 @@ export default function TicketsSection({ event }: { event: Event }) {
 
   const hasSelection = Object.values(quantities).some((q) => q > 0);
 
+  const handleReminder = async () => {
+    setReminderLoading(true);
+    setReminderError("");
+    setReminderSuccess(false);
+
+    try {
+      const res = await fetch("/api/ticket-reminders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: event.id,
+          email: reminderEmail,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data?.code === "SALE_ALREADY_OPEN") {
+          setReminderSuccess(false);
+          setReminderError(
+            "La venta ya esta disponible. Actualizando entradas...",
+          );
+          setTimeout(() => window.location.reload(), 1200);
+          return;
+        }
+
+        throw new Error(data?.error || "No se pudo guardar el recordatorio");
+      }
+
+      setReminderSuccess(true);
+      setReminderEmail("");
+    } catch (error) {
+      setReminderError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar el recordatorio",
+      );
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
   const handlePurchase = async (buyer: PurchaseBuyer) => {
     setLoading(true);
 
     try {
       const items = Object.entries(quantities)
-        .filter(([_, q]) => q > 0)
+        .filter(([, q]) => q > 0)
         .map(([ticketTypeId, quantity]) => ({
           ticketTypeId,
           quantity,
@@ -83,7 +133,7 @@ export default function TicketsSection({ event }: { event: Event }) {
       }
 
       window.location.href = data.url;
-    } catch (e) {
+    } catch {
       alert("Error inesperado");
     } finally {
       setLoading(false);
@@ -157,6 +207,66 @@ export default function TicketsSection({ event }: { event: Event }) {
   return (
     <div className="mt-12">
       <h3 className="text-sm tracking-[0.2em] text-gray-400 mb-6">ENTRADAS</h3>
+
+      {!isSaleOpen && salesStart && (
+        <div className="mb-5 overflow-hidden rounded-2xl border border-purple-400/25 bg-gradient-to-br from-purple-500/15 via-white/[0.06] to-black/20 p-5 shadow-[0_0_35px_rgba(168,85,247,0.14)]">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-purple-400/30 bg-purple-500/20 text-purple-200">
+                <Bell className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-base font-semibold text-white">
+                  Recibe un aviso cuando abra la venta
+                </p>
+                <p className="mt-1 text-sm text-gray-400">
+                  Te enviaremos un correo el{" "}
+                  <span className="text-purple-200">
+                    {format(salesStart, "d MMM · HH:mm", { locale: es })}
+                  </span>
+                  .
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full md:max-w-sm">
+              {reminderSuccess ? (
+                <div className="flex min-h-11 items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 text-sm text-emerald-300">
+                  <CheckCircle className="h-4 w-4" />
+                  Recordatorio activado
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="email"
+                      value={reminderEmail}
+                      onChange={(e) => setReminderEmail(e.target.value)}
+                      placeholder="tu@email.com"
+                      className="h-11 w-full rounded-xl border border-white/10 bg-black/30 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-purple-400"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={reminderLoading || reminderEmail.trim() === ""}
+                    onClick={handleReminder}
+                    className="h-11 rounded-xl bg-purple-600 px-4 text-sm font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-gray-500"
+                  >
+                    Avisarme
+                  </button>
+                </div>
+              )}
+
+              {reminderError && (
+                <p className="mt-2 text-xs text-red-300">{reminderError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-white/10 bg-white/5 divide-y divide-white/10">
         {tickets.map((ticket) => {
