@@ -38,17 +38,9 @@ export default function TerminosCondicionesPage() {
           <LegalSection title="1. Titularidad y contacto">
             ALTER EGO Experience es la plataforma utilizada para la publicacion
             de eventos, venta de entradas, gestion de accesos y comunicacion con
-            asistentes.
-
-            <PendingData
-              items={[
-                "Nombre legal del titular o razon social",
-                "NIF/CIF",
-                "Domicilio fiscal o social",
-                "Email de contacto legal",
-                "Telefono de contacto, si aplica",
-              ]}
-            />
+            asistentes. El titular responsable de la web es Ivan Sancha Casado,
+            con NIF 79297858E, domicilio en Parroco Vicente Zabala N8 1D y
+            correo electronico de contacto Ivansancha2001@gmail.com.
           </LegalSection>
 
           <LegalSection title="2. Objeto">
@@ -137,9 +129,9 @@ export default function TerminosCondicionesPage() {
         </section>
 
         <div className="mt-10 rounded-2xl border border-amber-400/25 bg-amber-500/10 p-5 text-sm leading-7 text-amber-100">
-          Hay campos marcados como Pendiente de completar que deben
-          sustituirse por informacion real del cliente antes de produccion.
-          Tambien conviene revisar el texto final con asesoramiento legal.
+          Este texto queda preparado para produccion con los datos facilitados
+          por el titular. Conviene revisarlo con asesoramiento legal antes de la
+          publicacion definitiva.
         </div>
 
         <div className="mt-10">
@@ -180,20 +172,5 @@ function LegalSection({
         {children}
       </div>
     </article>
-  );
-}
-
-function PendingData({ items }: { items: string[] }) {
-  return (
-    <div className="mt-5 rounded-2xl border border-amber-300/35 bg-amber-400/10 p-4 text-amber-100 shadow-[0_0_24px_rgba(251,191,36,0.12)]">
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-200">
-        Pendiente de completar
-      </p>
-      <ul className="mt-3 list-inside list-disc space-y-1 text-sm leading-6">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
   );
 }
