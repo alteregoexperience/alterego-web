@@ -128,12 +128,6 @@ export default function TerminosCondicionesPage() {
           </LegalSection>
         </section>
 
-        <div className="mt-10 rounded-2xl border border-amber-400/25 bg-amber-500/10 p-5 text-sm leading-7 text-amber-100">
-          Este texto queda preparado para produccion con los datos facilitados
-          por el titular. Conviene revisarlo con asesoramiento legal antes de la
-          publicacion definitiva.
-        </div>
-
         <div className="mt-10">
           <Link
             href="/"

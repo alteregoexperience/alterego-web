@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { EventListItem } from "@/types/Event";
@@ -34,61 +33,17 @@ export default function GestionDashboard() {
     const loadEvents = async () => {
       const now = new Date();
 
-      const { data: events, error: eventsError } = await supabase
-        .from("events")
-        .select(
-          `
-        id,
-        title,
-        slug,
-        starts_at,
-        ends_at,
-        ticket_sales_start_at,
-        is_visible,
-        event_participants(count)
-      `,
-        )
-        .order("starts_at", { ascending: true });
+      const response = await fetch("/api/events/admin-list", {
+        cache: "no-store",
+      });
+      const data = await response.json();
 
-      if (eventsError) {
-        console.error("Error cargando eventos:", eventsError);
+      if (!response.ok) {
+        console.error("Error cargando eventos:", data?.error);
         return;
       }
 
-      const eventIds = (events ?? []).map((event) => event.id);
-
-      const { data: ticketTypes, error: ticketTypesError } = await supabase
-        .from("event_ticket_types")
-        .select("event_id, sold")
-        .in("event_id", eventIds);
-
-      if (ticketTypesError) {
-        console.error("Error cargando tipos de entrada:", ticketTypesError);
-        return;
-      }
-
-      const soldByEventId = (ticketTypes ?? []).reduce<Record<string, number>>(
-        (acc, ticketType) => {
-          if (!ticketType.event_id) return acc;
-
-          acc[ticketType.event_id] =
-            (acc[ticketType.event_id] ?? 0) + Number(ticketType.sold ?? 0);
-
-          return acc;
-        },
-        {},
-      );
-
-      const eventsWithSoldTickets: EventListItem[] = (events ?? []).map(
-        (event) => {
-          const soldTickets = soldByEventId[event.id] ?? 0;
-
-          return {
-            ...event,
-            sold_tickets: soldTickets,
-          };
-        },
-      );
+      const eventsWithSoldTickets = (data.events ?? []) as EventListItem[];
 
       const future: EventListItem[] = [];
       const past: EventListItem[] = [];
