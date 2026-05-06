@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { Event } from "@/types/Event";
 
@@ -6,6 +7,8 @@ export async function getUpcomingEvents(): Promise<Event[]> {
 }
 
 export async function getPublicEvents(limit?: number): Promise<Event[]> {
+  noStore();
+
   const now = new Date().toISOString();
 
   let query = supabase

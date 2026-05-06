@@ -8,6 +8,9 @@ import InfoSection from "@/components/public/home/InfoSection";
 
 import { getUpcomingEvents } from "@/lib/public/getUpcomingEvents";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function Home() {
   const events = await getUpcomingEvents();
 
