@@ -18,6 +18,7 @@ import {
   Plus,
   Calendar,
   Ticket,
+  FileText,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -172,7 +173,6 @@ function EventCard({ event }: { event: EventListItem }) {
     ? new Date(event.ends_at)
     : new Date(new Date(event.starts_at).getTime() + 12 * 60 * 60 * 1000);
   const start = new Date(event.starts_at);
-  const isActive = now >= start && now <= end;
   const diffMs = start.getTime() - now.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
@@ -294,7 +294,7 @@ function EventCard({ event }: { event: EventListItem }) {
             </div>
 
             {/* ACTIONS */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <ActionButton
                 icon={<Users size={16} />}
                 label="Participantes"
@@ -319,6 +319,14 @@ function EventCard({ event }: { event: EventListItem }) {
                 icon={<Ticket size={16} />}
                 label="Tickets"
                 onClick={() => router.push(`/gestion/${event.slug}/tickets`)}
+              />
+
+              <ActionButton
+                icon={<FileText size={16} />}
+                label="Manual"
+                onClick={() =>
+                  router.push(`/gestion/${event.slug}/entradas-manuales`)
+                }
               />
             </div>
           </CardContent>
