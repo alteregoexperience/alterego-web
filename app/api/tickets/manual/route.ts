@@ -173,7 +173,7 @@ export async function POST(req: Request) {
 
     for (const [index, ticket] of insertedTickets.entries()) {
       const ticketPdfBytes = await generateTicketPdf({
-        ticketId: `Ref: ${ticket.qr_code}`,
+        ticketId: ticket.qr_code,
         buyerName,
         buyerEmail,
         buyerPhone,

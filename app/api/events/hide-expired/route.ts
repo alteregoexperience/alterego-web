@@ -18,6 +18,23 @@ type ReminderRow = {
   };
 };
 
+type ReminderQueryRow = Omit<ReminderRow, "events"> & {
+  events: ReminderRow["events"][] | ReminderRow["events"];
+};
+
+function normalizeReminderRow(reminder: ReminderQueryRow): ReminderRow | null {
+  const event = Array.isArray(reminder.events)
+    ? (reminder.events[0] ?? null)
+    : reminder.events;
+
+  if (!event) return null;
+
+  return {
+    ...reminder,
+    events: event,
+  };
+}
+
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get("authorization");
@@ -106,7 +123,9 @@ async function sendPendingTicketReminders(now: string, forceReminders = false) {
     return { sentCount: 0, reminderError: error.message };
   }
 
-  const reminders = (data ?? []) as ReminderRow[];
+  const reminders = ((data ?? []) as unknown as ReminderQueryRow[])
+    .map(normalizeReminderRow)
+    .filter((reminder): reminder is ReminderRow => reminder !== null);
   let sentCount = 0;
 
   for (const reminder of reminders) {

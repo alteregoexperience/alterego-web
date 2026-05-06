@@ -1,6 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PurchasePayload, Ticket } from "@/types/Ticket";
-import * as QRCode from "qrcode";
 import { resend } from "@/lib/resend";
 import { renderPurchaseEmail } from "@/lib/emailPurchaseTemplate";
 import { generateTicketPdf } from "@/lib/generateTicketPdf";
@@ -125,7 +124,7 @@ export async function handleSuccessfulPurchase({
 
   // actualizar sold
   for (const item of items) {
-    const { data: newSold, error: incrementError } = await supabaseAdmin.rpc(
+    const { error: incrementError } = await supabaseAdmin.rpc(
       "increment_ticket_sold",
       {
         p_ticket_type_id: item.ticketTypeId,
@@ -147,7 +146,7 @@ export async function handleSuccessfulPurchase({
       );
 
       const pdfBytes = await generateTicketPdf({
-        ticketId: `Ref: ${ticket.qr_code}`,
+        ticketId: ticket.qr_code,
         buyerName: name,
         buyerEmail: email,
         buyerPhone: phone,

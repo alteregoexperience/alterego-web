@@ -19,6 +19,7 @@ import {
   Calendar,
   Ticket,
   FileText,
+  QrCode,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -294,7 +295,7 @@ function EventCard({ event }: { event: EventListItem }) {
             </div>
 
             {/* ACTIONS */}
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <ActionButton
                 icon={<Users size={16} />}
                 label="Participantes"
@@ -327,6 +328,12 @@ function EventCard({ event }: { event: EventListItem }) {
                 onClick={() =>
                   router.push(`/gestion/${event.slug}/entradas-manuales`)
                 }
+              />
+
+              <ActionButton
+                icon={<QrCode size={16} />}
+                label="Validar"
+                onClick={() => router.push(`/gestion/${event.slug}/validar`)}
               />
             </div>
           </CardContent>

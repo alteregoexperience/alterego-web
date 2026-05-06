@@ -172,7 +172,7 @@ export async function POST(req: Request) {
         );
 
         const pdfBytes = await generateTicketPdf({
-          ticketId: `Ref: ${ticket.qr_code}`,
+          ticketId: ticket.qr_code,
           buyerName: name,
           buyerEmail: email,
           buyerPhone: phone,
@@ -251,7 +251,7 @@ export async function POST(req: Request) {
       order,
       tickets: ticketsWithQr,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
