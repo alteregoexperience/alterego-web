@@ -79,6 +79,7 @@ export async function handleSuccessfulPurchase({
       buyer_phone: phone,
       total_amount: total,
       status: "paid",
+      stripe_checkout_session_id: sessionId,
       stripe_session_id: sessionId,
       fulfilled_at: new Date().toISOString(),
     })

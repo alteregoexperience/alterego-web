@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { handleSuccessfulPurchase } from "@/lib/handleSuccessfulPurchase";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     return new Response("No signature", { status: 400 });
   }
 
-  let event;
+  let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   }
 
   if (event.type === "checkout.session.completed") {
-    const session = event.data.object as any;
+    const session = event.data.object as Stripe.Checkout.Session;
 
     const sessionId = session.id;
     const metadata = session.metadata;
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       const { data: existing } = await supabaseAdmin
         .from("orders")
         .select("id")
-        .eq("stripe_session_id", sessionId)
+        .eq("stripe_checkout_session_id", sessionId)
         .maybeSingle();
 
       if (existing) {
