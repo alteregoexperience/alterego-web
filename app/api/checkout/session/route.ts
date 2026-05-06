@@ -98,7 +98,20 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!event.is_ticketing_enabled) {
+    const now = new Date();
+
+    const salesStart = event.ticket_sales_start_at
+      ? new Date(event.ticket_sales_start_at)
+      : null;
+
+    const salesEnd = event.ends_at
+      ? new Date(event.ends_at)
+      : new Date(event.starts_at);
+
+    const isTicketingOpen =
+      (!salesStart || now >= salesStart) && now <= salesEnd;
+
+    if (!isTicketingOpen) {
       return NextResponse.json(
         { error: "La venta de entradas no está disponible" },
         { status: 400 },

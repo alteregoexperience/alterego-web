@@ -25,7 +25,6 @@ export default function EventCard({
   const isSaleUpcoming = salesStart && salesStart > now;
   const isSaleOpen = !salesStart || salesStart <= now;
 
-  console.log(event.cover_image_url);
   return (
     <motion.div
       onClick={() => onClick(event)}

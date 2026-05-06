@@ -7,6 +7,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from("events")
     .select("*")
+    .eq("is_visible", true)
     .gte("starts_at", now)
     .order("starts_at", { ascending: true })
     .limit(6);

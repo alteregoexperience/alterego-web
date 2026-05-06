@@ -8,7 +8,7 @@ export type Event = {
   ends_at: string | null;
   status: string;
   cover_image_url: string | null;
-  is_ticketing_enabled: boolean | null;
+  is_visible: boolean | null;
   created_at: string | null;
   ticket_sales_start_at: string | null;
 };
@@ -21,4 +21,6 @@ export interface EventListItem {
   ends_at?: string | null;
   ticket_sales_start_at: string | null;
   event_participants: { count: number }[];
+  sold_tickets?: number;
+  is_visible: boolean | null;
 }

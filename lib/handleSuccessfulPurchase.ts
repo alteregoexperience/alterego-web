@@ -69,7 +69,7 @@ export async function handleSuccessfulPurchase({
     total += ticket.price * item.quantity;
   }
 
-  // 🔥 INSERT CORRECTO
+  // INSERT CORRECTO
   const { data: order, error: orderError } = await supabaseAdmin
     .from("orders")
     .insert({
@@ -80,7 +80,7 @@ export async function handleSuccessfulPurchase({
       buyer_phone: phone,
       total_amount: total,
       status: "paid",
-      stripe_session_id: sessionId, // 🔥 CLAVE
+      stripe_session_id: sessionId,
       fulfilled_at: new Date().toISOString(),
     })
     .select()
@@ -121,6 +121,22 @@ export async function handleSuccessfulPurchase({
 
   if (ticketsError || !insertedTickets) {
     throw new Error("Error creando tickets");
+  }
+
+  // actualizar sold
+  for (const item of items) {
+    const { data: newSold, error: incrementError } = await supabaseAdmin.rpc(
+      "increment_ticket_sold",
+      {
+        p_ticket_type_id: item.ticketTypeId,
+        p_qty: item.quantity,
+      },
+    );
+
+    if (incrementError) {
+      console.error("ERROR ACTUALIZANDO SOLD:", incrementError);
+      throw new Error("Error actualizando entradas vendidas");
+    }
   }
 
   // PDFs
@@ -166,14 +182,6 @@ export async function handleSuccessfulPurchase({
     html: renderPurchaseEmail({ name }),
     attachments,
   });
-
-  // actualizar sold
-  for (const item of items) {
-    await supabaseAdmin.rpc("increment_ticket_sold", {
-      ticket_id: item.ticketTypeId,
-      qty: item.quantity,
-    });
-  }
 
   return order;
 }

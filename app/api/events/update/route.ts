@@ -14,9 +14,36 @@ export async function POST(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { id, ...values } = await req.json();
+  const {
+    id,
+    title,
+    starts_at,
+    ends_at,
+    location,
+    description,
+    ticket_sales_start_at,
+    is_visible,
+  } = await req.json();
 
-  const { error } = await supabase.from("events").update(values).eq("id", id);
+  if (!id) {
+    return NextResponse.json(
+      { error: "ID de evento obligatorio" },
+      { status: 400 },
+    );
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      title: title?.trim(),
+      starts_at,
+      ends_at: ends_at || null,
+      location: location || null,
+      description: description || null,
+      ticket_sales_start_at: ticket_sales_start_at || null,
+      is_visible: Boolean(is_visible),
+    })
+    .eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

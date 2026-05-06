@@ -19,6 +19,7 @@ export default function CrearEventoPage() {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [ticketsAt, setTicketsAt] = useState(new Date().toISOString());
+  const [isVisible, setIsVisible] = useState(false);
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -91,6 +92,7 @@ export default function CrearEventoPage() {
         ends_at: endsAt || null,
         ticket_sales_start_at: ticketsAt,
         cover_image_url: coverImageUrl,
+        is_visible: isVisible,
       }),
     });
 
@@ -158,6 +160,29 @@ export default function CrearEventoPage() {
           <div>
             <label className="text-xs text-zinc-400">Apertura tickets</label>
             <DateTimePicker value={ticketsAt} onChange={setTicketsAt} />
+          </div>
+
+          <div className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+            <input
+              id="is_visible"
+              type="checkbox"
+              checked={isVisible}
+              onChange={(e) => setIsVisible(e.target.checked)}
+              className="mt-1 h-4 w-4 accent-purple-600"
+            />
+
+            <div>
+              <label
+                htmlFor="is_visible"
+                className="text-sm font-medium text-white cursor-pointer"
+              >
+                Mostrar evento en la web.
+              </label>
+
+              <p className="text-xs text-zinc-500 mt-1">
+                Si está desactivado, el evento no se mostrará en la web pública.
+              </p>
+            </div>
           </div>
 
           {/* 🔥 INPUT IMAGEN PRO */}

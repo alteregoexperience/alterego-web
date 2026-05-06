@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     description,
     ticket_sales_start_at,
     cover_image_url,
+    is_visible,
   } = await req.json();
 
   if (!title || !starts_at) {
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
     ticket_sales_start_at: ticket_sales_start_at || new Date().toISOString(),
     cover_image_url: cover_image_url || null,
     status: "upcoming",
+    is_visible: Boolean(is_visible),
   });
 
   if (error) {

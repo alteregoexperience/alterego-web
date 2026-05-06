@@ -20,6 +20,9 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
   const [ticketsAt, setTicketsAt] = useState(
     initial?.ticket_sales_start_at ?? new Date().toISOString(),
   );
+  const [isTicketingEnabled, setIsTicketingEnabled] = useState(
+    initial?.is_visible ?? false,
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +49,7 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
       starts_at: startsAt,
       ends_at: endsAt || null,
       ticket_sales_start_at: ticketsAt,
+      is_visible: isTicketingEnabled,
     });
 
     setLoading(false);
@@ -88,6 +92,29 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
         <label className="text-xs text-zinc-400">Fecha apertura tickets</label>
 
         <DateTimePicker value={ticketsAt} onChange={setTicketsAt} />
+      </div>
+
+      <div className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+        <input
+          id="is_visible"
+          type="checkbox"
+          checked={isTicketingEnabled}
+          onChange={(e) => setIsTicketingEnabled(e.target.checked)}
+          className="mt-1 h-4 w-4 accent-purple-600"
+        />
+
+        <div>
+          <label
+            htmlFor="is_visible"
+            className="text-sm font-medium text-white cursor-pointer"
+          >
+            Mostrar evento en la web.
+          </label>
+
+          <p className="text-xs text-zinc-500 mt-1">
+            Si está desactivado, el evento no se mostrará en la web pública.
+          </p>
+        </div>
       </div>
 
       {error && <div className="text-red-400 text-sm">{error}</div>}

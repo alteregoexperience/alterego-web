@@ -11,7 +11,16 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { Users, Upload, Trophy, Plus, Calendar, Ticket } from "lucide-react";
+import {
+  Users,
+  Upload,
+  Trophy,
+  Plus,
+  Calendar,
+  Ticket,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { isTicketingOpen } from "@/lib/events";
 
 export default function GestionDashboard() {
@@ -23,7 +32,7 @@ export default function GestionDashboard() {
     const loadEvents = async () => {
       const now = new Date();
 
-      const { data } = await supabase
+      const { data: events, error: eventsError } = await supabase
         .from("events")
         .select(
           `
@@ -33,16 +42,57 @@ export default function GestionDashboard() {
         starts_at,
         ends_at,
         ticket_sales_start_at,
+        is_visible,
         event_participants(count)
       `,
         )
         .order("starts_at", { ascending: true });
 
+      if (eventsError) {
+        console.error("Error cargando eventos:", eventsError);
+        return;
+      }
+
+      const eventIds = (events ?? []).map((event) => event.id);
+
+      const { data: ticketTypes, error: ticketTypesError } = await supabase
+        .from("event_ticket_types")
+        .select("event_id, sold")
+        .in("event_id", eventIds);
+
+      if (ticketTypesError) {
+        console.error("Error cargando tipos de entrada:", ticketTypesError);
+        return;
+      }
+
+      const soldByEventId = (ticketTypes ?? []).reduce<Record<string, number>>(
+        (acc, ticketType) => {
+          if (!ticketType.event_id) return acc;
+
+          acc[ticketType.event_id] =
+            (acc[ticketType.event_id] ?? 0) + Number(ticketType.sold ?? 0);
+
+          return acc;
+        },
+        {},
+      );
+
+      const eventsWithSoldTickets: EventListItem[] = (events ?? []).map(
+        (event) => {
+          const soldTickets = soldByEventId[event.id] ?? 0;
+
+          return {
+            ...event,
+            sold_tickets: soldTickets,
+          };
+        },
+      );
+
       const future: EventListItem[] = [];
       const past: EventListItem[] = [];
       const active: EventListItem[] = [];
 
-      (data ?? []).forEach((event) => {
+      eventsWithSoldTickets.forEach((event) => {
         const start = new Date(event.starts_at);
 
         const end = event.ends_at
@@ -58,7 +108,6 @@ export default function GestionDashboard() {
         }
       });
 
-      // Activos arriba del todo
       setFutureEvents([...active, ...future]);
       setPastEvents(past);
     };
@@ -129,6 +178,8 @@ function EventCard({ event }: { event: EventListItem }) {
   const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
   const isStarted = diffMs <= 0;
   const isClosed = now > end;
+  const isVisible = event.is_visible === true && !isClosed;
+  console.log("isVisible", isVisible);
 
   const deleteEvent = async () => {
     setLoading(true);
@@ -178,10 +229,24 @@ function EventCard({ event }: { event: EventListItem }) {
           <CardContent className="p-5 flex flex-col gap-4">
             {/* HEADER */}
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap pr-12">
                 <div className="text-lg font-semibold text-white tracking-tight">
                   {event.title}
                 </div>
+
+                <span
+                  className={`
+                            inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border
+                            ${
+                              isVisible
+                                ? "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                                : "bg-zinc-500/15 text-zinc-400 border-zinc-700"
+                            }
+                          `}
+                >
+                  {isVisible ? <Eye size={11} /> : <EyeOff size={11} />}
+                  {isVisible ? "Visible web" : "Oculto web"}
+                </span>
 
                 {isClosed ? (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/30">
@@ -219,8 +284,12 @@ function EventCard({ event }: { event: EventListItem }) {
                 )}
               </div>
 
-              <div className="text-xs text-zinc-500 mt-1">
-                {event.event_participants?.[0]?.count ?? 0} participantes
+              <div className="text-xs text-zinc-500 mt-1 flex items-center gap-2 flex-wrap">
+                <span>
+                  {event.event_participants?.[0]?.count ?? 0} participantes
+                </span>
+                <span className="text-zinc-700">·</span>
+                <span>{event.sold_tickets ?? 0} entradas vendidas</span>
               </div>
             </div>
 

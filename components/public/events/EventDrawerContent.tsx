@@ -13,7 +13,7 @@ export default function EventDrawerContent({
 }) {
   return (
     <div className="relative h-full overflow-hidden">
-      <div className="relative h-full overflow-y-auto px-6 md:px-10 py-8">
+      <div className="relative h-full overflow-y-auto px-6 md:px-10 py-6 box-border">
         {/* ❌ CLOSE */}
         <button
           onClick={onClose}

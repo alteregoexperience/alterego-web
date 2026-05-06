@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         .maybeSingle();
 
       if (existing) {
-        console.log("⚠️ Ya procesado:", sessionId);
+        console.log("Ya procesado:", sessionId);
         return new Response("ok", { status: 200 });
       }
 
@@ -62,9 +62,9 @@ export async function POST(req: Request) {
         sessionId,
       });
 
-      console.log("✅ Compra procesada:", sessionId);
+      console.log("Compra procesada:", sessionId);
     } catch (err) {
-      console.error("❌ Error procesando compra:", err);
+      console.error("Error procesando compra:", err);
       return new Response("Error handled", { status: 200 });
     }
   }
