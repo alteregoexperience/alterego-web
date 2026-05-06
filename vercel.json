@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/events/hide-expired",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

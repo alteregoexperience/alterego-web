@@ -9,6 +9,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     .select("*")
     .eq("is_visible", true)
     .gte("starts_at", now)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
     .order("starts_at", { ascending: true })
     .limit(6);
 
