@@ -1,3 +1,5 @@
+import PublicNav from "./PublicNav";
+
 export default function PublicBackground({
   children,
 }: {
@@ -39,7 +41,10 @@ export default function PublicBackground({
       <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_60%,black_100%)]" />
 
       {/* CONTENT */}
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10">
+        <PublicNav />
+        {children}
+      </div>
     </div>
   );
 }

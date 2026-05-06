@@ -5,15 +5,8 @@ import PublicBackground from "@/components/public/layout/PublicBackground";
 export default function PoliticaCookiesPage() {
   return (
     <PublicBackground>
-      <main className="mx-auto max-w-3xl px-6 py-16 text-white">
-        <Link
-          href="/"
-          className="text-sm font-medium text-purple-300 hover:text-purple-200"
-        >
-          Volver
-        </Link>
-
-        <section className="mt-8 space-y-8">
+      <main className="mx-auto max-w-3xl px-6 pb-20 pt-32 text-white md:pt-36">
+        <section className="space-y-8">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-purple-300">
               Informacion legal
@@ -58,6 +51,15 @@ export default function PoliticaCookiesPage() {
             basada exclusivamente en cookies tecnicas.
           </LegalBlock>
         </section>
+
+        <div className="mt-10">
+          <Link
+            href="/"
+            className="inline-flex rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
+          >
+            Volver al inicio
+          </Link>
+        </div>
       </main>
     </PublicBackground>
   );
