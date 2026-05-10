@@ -21,6 +21,7 @@ import {
   QrCode,
   Eye,
   EyeOff,
+  UserRound,
 } from "lucide-react";
 import { isTicketingOpen } from "@/lib/events";
 
@@ -275,6 +276,14 @@ function EventCard({ event }: { event: EventListItem }) {
                 icon={<Ticket size={16} />}
                 label="Tickets"
                 onClick={() => router.push(`/gestion/${event.slug}/tickets`)}
+              />
+
+              <ActionButton
+                icon={<UserRound size={16} />}
+                label="Compradores"
+                onClick={() =>
+                  router.push(`/gestion/${event.slug}/compradores`)
+                }
               />
 
               <ActionButton
