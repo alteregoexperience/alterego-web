@@ -20,7 +20,15 @@ export function renderTicketSaleReminderEmail({
   eventUrl,
 }: Params) {
   return `
-<table width="100%" cellpadding="0" cellspacing="0" style="
+<!doctype html>
+<html>
+<head>
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+</head>
+<body style="margin:0;padding:0;background-color:#07070a;color:#ffffff;">
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#07070a" style="
+  background-color:#07070a;
   background: radial-gradient(circle at top, #1a0730 0%, #07070a 62%);
   padding:40px 0;
   font-family:Arial,Helvetica,sans-serif;
@@ -28,7 +36,8 @@ export function renderTicketSaleReminderEmail({
 <tr>
 <td align="center">
 
-<table width="540" cellpadding="0" cellspacing="0" style="
+<table width="540" cellpadding="0" cellspacing="0" bgcolor="#0c0c12" style="
+  background-color:#0c0c12;
   background:#0c0c12;
   border-radius:20px;
   padding:34px;
@@ -38,8 +47,19 @@ export function renderTicketSaleReminderEmail({
 ">
 <tr>
 <td align="center">
-  <img src="${tortuga}" width="96" style="display:block;margin:0 auto 14px auto" />
-  <img src="${logo}" width="170" style="display:block;margin:0 auto 8px auto" />
+  <table cellpadding="0" cellspacing="0" bgcolor="#12091d" style="
+    background-color:#12091d;
+    border:1px solid #332047;
+    border-radius:999px;
+    margin:0 auto 14px auto;
+  ">
+    <tr>
+      <td align="center" style="padding:12px">
+        <img src="${tortuga}" width="96" alt="ALTER EGO" style="display:block;margin:0 auto" />
+      </td>
+    </tr>
+  </table>
+  <img src="${logo}" width="170" alt="ALTER EGO" style="display:block;margin:0 auto 8px auto" />
   <p style="
     margin:0;
     color:#a855f7;
@@ -132,5 +152,7 @@ export function renderTicketSaleReminderEmail({
 </td>
 </tr>
 </table>
+</body>
+</html>
 `;
 }

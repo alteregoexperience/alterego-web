@@ -11,7 +11,15 @@ const tortuga = `${baseUrl}/tortuga_blanca.png`;
 
 export function renderPurchaseEmail({ name }: Params) {
   return `
-<table width="100%" cellpadding="0" cellspacing="0" style="
+<!doctype html>
+<html>
+<head>
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+</head>
+<body style="margin:0;padding:0;background-color:#07070a;color:#ffffff;">
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#07070a" style="
+  background-color:#07070a;
   background: radial-gradient(circle at top, #140626 0%, #07070a 60%);
   padding:40px 0;
   font-family:Arial,Helvetica,sans-serif;
@@ -20,7 +28,8 @@ export function renderPurchaseEmail({ name }: Params) {
 <tr>
 <td align="center">
 
-<table width="520" cellpadding="0" cellspacing="0" style="
+<table width="520" cellpadding="0" cellspacing="0" bgcolor="#0c0c12" style="
+  background-color:#0c0c12;
   background:#0c0c12;
   border-radius:18px;
   padding:32px;
@@ -33,15 +42,28 @@ export function renderPurchaseEmail({ name }: Params) {
 <tr>
 <td align="center" style="padding-bottom:10px">
 
+<table cellpadding="0" cellspacing="0" bgcolor="#12091d" style="
+  background-color:#12091d;
+  border:1px solid #332047;
+  border-radius:999px;
+  margin:0 auto 12px auto;
+">
+<tr>
+<td align="center" style="padding:12px">
 <img 
   src="${tortuga}" 
   width="70"
-  style="display:block;margin:0 auto 12px auto"
+  alt="ALTER EGO"
+  style="display:block;margin:0 auto"
 />
+</td>
+</tr>
+</table>
 
 <img 
   src="${logo}" 
   width="160"
+  alt="ALTER EGO"
   style="display:block;margin:0 auto 5px auto"
 />
 
@@ -180,5 +202,7 @@ Acceso solo para <strong style="color:#5E1CA3">mayores de 18 años</strong>
 </tr>
 
 </table>
+</body>
+</html>
 `;
 }

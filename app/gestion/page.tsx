@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { EventListItem } from "@/types/Event";
 import GestionHeader from "@/components/gestion/GestionHeader";
-import { Pencil, Trash2 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,9 @@ import {
   Eye,
   EyeOff,
   UserRound,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { isTicketingOpen } from "@/lib/events";
 
@@ -123,6 +125,7 @@ export default function GestionDashboard() {
 function EventCard({ event }: { event: EventListItem }) {
   const router = useRouter();
   const [showDelete, setShowDelete] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [loading, setLoading] = useState(false);
   const ticketOpen = isTicketingOpen(event);
   const now = new Date();
@@ -136,7 +139,6 @@ function EventCard({ event }: { event: EventListItem }) {
   const isStarted = diffMs <= 0;
   const isClosed = now > end;
   const isVisible = event.is_visible === true && !isClosed;
-  console.log("isVisible", isVisible);
 
   const deleteEvent = async () => {
     setLoading(true);
@@ -156,37 +158,10 @@ function EventCard({ event }: { event: EventListItem }) {
     <>
       <motion.div whileHover={{ y: -4 }}>
         <Card className="relative bg-zinc-900/70 border border-zinc-800 backdrop-blur-sm hover:border-purple-500 transition shadow-xl">
-          {/* PAPELERA */}
-          <button
-            onClick={() => setShowDelete(true)}
-            className="
-            absolute top-3 right-3
-            text-zinc-500
-            hover:text-red-400
-            transition
-            opacity-60 hover:opacity-100
-            "
-          >
-            <Trash2 size={16} />
-          </button>
-
-          <button
-            onClick={() => router.push(`/gestion/${event.slug}/editar`)}
-            className="
-              absolute top-3 right-9
-              text-zinc-500
-              hover:text-purple-400
-              transition
-              opacity-60 hover:opacity-100
-            "
-          >
-            <Pencil size={16} />
-          </button>
-
           <CardContent className="p-5 flex flex-col gap-4">
             {/* HEADER */}
             <div>
-              <div className="flex items-center gap-2 flex-wrap pr-12">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="text-lg font-semibold text-white tracking-tight">
                   {event.title}
                 </div>
@@ -251,31 +226,13 @@ function EventCard({ event }: { event: EventListItem }) {
             </div>
 
             {/* ACTIONS */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2">
               <ActionButton
                 icon={<Users size={16} />}
                 label="Participantes"
                 onClick={() =>
                   router.push(`/gestion/${event.slug}/participantes`)
                 }
-              />
-
-              <ActionButton
-                icon={<Upload size={16} />}
-                label="Importar"
-                onClick={() => router.push(`/gestion/${event.slug}/importar`)}
-              />
-
-              <ActionButton
-                icon={<Trophy size={16} />}
-                label="Ranking"
-                onClick={() => router.push(`/ranking/${event.slug}`)}
-              />
-
-              <ActionButton
-                icon={<Ticket size={16} />}
-                label="Tickets"
-                onClick={() => router.push(`/gestion/${event.slug}/tickets`)}
               />
 
               <ActionButton
@@ -287,19 +244,68 @@ function EventCard({ event }: { event: EventListItem }) {
               />
 
               <ActionButton
-                icon={<FileText size={16} />}
-                label="Manual"
-                onClick={() =>
-                  router.push(`/gestion/${event.slug}/entradas-manuales`)
-                }
-              />
-
-              <ActionButton
                 icon={<QrCode size={16} />}
                 label="Validar"
                 onClick={() => router.push(`/gestion/${event.slug}/validar`)}
               />
+
+              <ActionButton
+                icon={<Trophy size={16} />}
+                label="Ranking"
+                onClick={() => router.push(`/ranking/${event.slug}`)}
+              />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowOptions((value) => !value)}
+              className="
+              flex h-10 items-center justify-center gap-2
+              rounded-lg border border-zinc-800
+              bg-zinc-950/60
+              text-xs text-zinc-400
+              transition
+              hover:border-purple-500/40 hover:bg-zinc-800 hover:text-white
+              "
+            >
+              <MoreHorizontal size={16} />
+              {showOptions ? "Ocultar opciones" : "Mas opciones"}
+            </button>
+
+            {showOptions && (
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-800 bg-black/20 p-2">
+                <SecondaryActionButton
+                  icon={<Pencil size={15} />}
+                  label="Editar evento"
+                  onClick={() => router.push(`/gestion/${event.slug}/editar`)}
+                />
+                <SecondaryActionButton
+                  icon={<Upload size={15} />}
+                  label="Importar"
+                  onClick={() =>
+                    router.push(`/gestion/${event.slug}/importar`)
+                  }
+                />
+                <SecondaryActionButton
+                  icon={<Ticket size={15} />}
+                  label="Tipos de tickets"
+                  onClick={() => router.push(`/gestion/${event.slug}/tickets`)}
+                />
+                <SecondaryActionButton
+                  icon={<FileText size={15} />}
+                  label="Entradas manuales"
+                  onClick={() =>
+                    router.push(`/gestion/${event.slug}/entradas-manuales`)
+                  }
+                />
+                <SecondaryActionButton
+                  icon={<Trash2 size={15} />}
+                  label="Eliminar"
+                  danger
+                  onClick={() => setShowDelete(true)}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -367,6 +373,39 @@ function ActionButton({
     >
       {icon}
       <span className="text-[11px]">{label}</span>
+    </button>
+  );
+}
+
+function SecondaryActionButton({
+  icon,
+  label,
+  onClick,
+  danger = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`
+      flex items-center gap-2
+      rounded-md px-3 py-2
+      text-left text-xs
+      transition
+      ${
+        danger
+          ? "text-red-300 hover:bg-red-500/10 hover:text-red-200"
+          : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+      }
+      `}
+    >
+      {icon}
+      <span>{label}</span>
     </button>
   );
 }

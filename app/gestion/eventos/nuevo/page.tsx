@@ -50,8 +50,8 @@ export default function CrearEventoPage() {
   const handleFileChange = (file: File | null) => {
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      setError("La imagen no puede superar 2MB");
+    if (file.size > 20 * 1024 * 1024) {
+      setError("La imagen no puede superar 20MB");
       return;
     }
 
@@ -393,7 +393,7 @@ export default function CrearEventoPage() {
               <label className="flex flex-col items-center gap-2 cursor-pointer">
                 <ImagePlus className="text-zinc-400" />
                 <span className="text-sm text-zinc-400">
-                  Subir imagen max 2MB
+                  Subir imagen max 20MB
                 </span>
                 <input
                   type="file"
