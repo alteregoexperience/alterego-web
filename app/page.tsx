@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import PublicBackground from "@/components/public/layout/PublicBackground";
 import HeroSection from "@/components/public/home/HeroSection";
 import UpcomingEventsSection from "@/components/public/home/UpcomingEventsSection";
-import HowItWorksSection from "@/components/public/home/HowItWorksSection";
-import InfoSection from "@/components/public/home/InfoSection";
+import StoryTeaserSection from "@/components/public/home/StoryTeaserSection";
+import ContactTeaserSection from "@/components/public/home/ContactTeaserSection";
 
 import { getUpcomingEvents } from "@/lib/public/getUpcomingEvents";
 
@@ -23,8 +23,8 @@ export default async function Home() {
           <UpcomingEventsSection events={events} />
         </Suspense>
 
-        <HowItWorksSection />
-        <InfoSection />
+        <StoryTeaserSection />
+        <ContactTeaserSection />
       </main>
     </PublicBackground>
   );

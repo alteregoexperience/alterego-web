@@ -6,6 +6,29 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
+function parseAttendeeNames(metadata: Stripe.Metadata) {
+  const chunksCount = Number(metadata.attendeeNamesChunks ?? 0);
+
+  if (!Number.isInteger(chunksCount) || chunksCount <= 0) {
+    return undefined;
+  }
+
+  const serializedAttendeeNames = Array.from(
+    { length: chunksCount },
+    (_, index) => metadata[`attendeeNames_${index}`] ?? "",
+  ).join("");
+  const attendeeNames = JSON.parse(serializedAttendeeNames);
+
+  if (!Array.isArray(attendeeNames)) {
+    return undefined;
+  }
+
+  return attendeeNames.filter(
+    (attendeeName): attendeeName is string =>
+      typeof attendeeName === "string" && attendeeName.trim().length > 0,
+  );
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const sig = (await headers()).get("stripe-signature");
@@ -60,6 +83,7 @@ export async function POST(req: Request) {
           phone: metadata.buyerPhone,
         },
         items: JSON.parse(metadata.items),
+        attendeeNames: parseAttendeeNames(metadata),
         sessionId,
       });
 

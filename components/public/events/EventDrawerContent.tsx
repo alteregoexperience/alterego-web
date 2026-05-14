@@ -77,7 +77,6 @@ export default function EventDrawerContent({
 
             {/* 🎟️ TICKETS */}
             <div>
-              <h2 className="text-sm text-gray-400 mb-4">Entradas</h2>
               <TicketsSection event={event} />
             </div>
           </div>

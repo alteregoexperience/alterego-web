@@ -13,7 +13,7 @@ export default function TerminosCondicionesPage() {
               Condiciones legales
             </p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-6xl">
-              Terminos y condiciones
+              Términos y condiciones
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-400">
               Estas condiciones regulan la compra, uso y validacion de entradas
@@ -27,9 +27,18 @@ export default function TerminosCondicionesPage() {
               Resumen esencial
             </p>
             <div className="mt-5 space-y-4 text-sm text-zinc-300">
-              <SummaryItem icon={<Ticket />} text="Cada QR es unico y valido para una sola persona." />
-              <SummaryItem icon={<UserCheck />} text="El acceso esta sujeto a verificacion de edad e identidad." />
-              <SummaryItem icon={<ShieldCheck />} text="La organizacion puede denegar accesos fraudulentos o duplicados." />
+              <SummaryItem
+                icon={<Ticket />}
+                text="Cada QR es unico y valido para una sola persona."
+              />
+              <SummaryItem
+                icon={<UserCheck />}
+                text="El acceso esta sujeto a verificacion de edad e identidad."
+              />
+              <SummaryItem
+                icon={<ShieldCheck />}
+                text="La organizacion puede denegar accesos fraudulentos o duplicados."
+              />
             </div>
           </div>
         </section>
@@ -39,8 +48,9 @@ export default function TerminosCondicionesPage() {
             ALTER EGO Experience es la plataforma utilizada para la publicacion
             de eventos, venta de entradas, gestion de accesos y comunicacion con
             asistentes. El titular responsable de la web es Ivan Sancha Casado,
-            con NIF 79297858E, domicilio en Parroco Vicente Zabala N8 1D y
-            correo electronico de contacto Ivansancha2001@gmail.com.
+            con NIF 79297858E, domicilio de contacto en Av. del Ferrocarril, 10,
+            Basurto-Zorroza, 48012 Bilbao, Bizkaia y correo electronico de
+            contacto a.ego.experience@gmail.com.
           </LegalSection>
 
           <LegalSection title="2. Objeto">
@@ -94,7 +104,7 @@ export default function TerminosCondicionesPage() {
             por ley, las entradas no seran reembolsables una vez completada la
             compra. En caso de cancelacion del evento, la organizacion informara
             sobre el procedimiento aplicable. La organizacion podra modificar
-            horarios, ubicacion, programa o condiciones del evento por causas
+            horarios, ubicación, programa o condiciones del evento por causas
             justificadas, comunicandolo cuando resulte necesario.
           </LegalSection>
 

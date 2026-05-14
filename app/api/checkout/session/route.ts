@@ -26,6 +26,29 @@ function isValidPhone(phone: string) {
   return /^(\+34|0034)?[6-9]\d{8}$/.test(phone.replace(/\s/g, ""));
 }
 
+function normalizeName(name: string) {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function buildAttendeeNamesMetadata(attendeeNames: string[]) {
+  const serializedAttendeeNames = JSON.stringify(attendeeNames);
+  const chunks = serializedAttendeeNames.match(/[\s\S]{1,450}/g) ?? [];
+
+  if (chunks.length > 40) {
+    throw new Error("Demasiadas entradas para guardar los nombres");
+  }
+
+  return chunks.reduce<Record<string, string>>(
+    (metadata, chunk, index) => ({
+      ...metadata,
+      [`attendeeNames_${index}`]: chunk,
+    }),
+    {
+      attendeeNamesChunks: chunks.length.toString(),
+    },
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body: PurchasePayload = await req.json();
@@ -36,8 +59,9 @@ export async function POST(req: Request) {
     }
 
     const { name, birthdate, email, phone } = buyer;
+    const buyerName = normalizeName(name);
 
-    if (!name || !birthdate || !email || !phone) {
+    if (!buyerName || !birthdate || !email || !phone) {
       return NextResponse.json(
         { error: "Datos comprador incompletos" },
         { status: 400 },
@@ -131,6 +155,7 @@ export async function POST(req: Request) {
     }
 
     let totalAmount = 0;
+    let totalTickets = 0;
 
     const lineItems: {
       price_data: {
@@ -187,6 +212,7 @@ export async function POST(req: Request) {
       }
 
       totalAmount += ticketType.price * item.quantity;
+      totalTickets += item.quantity;
 
       lineItems.push({
         price_data: {
@@ -201,7 +227,39 @@ export async function POST(req: Request) {
       });
     }
 
+    const normalizedAttendeeNames = Array.isArray(body.attendeeNames)
+      ? body.attendeeNames.map((attendeeName) =>
+          typeof attendeeName === "string" ? normalizeName(attendeeName) : "",
+        )
+      : [];
+
+    if (
+      totalTickets > 1 &&
+      (normalizedAttendeeNames.length !== totalTickets ||
+        normalizedAttendeeNames.slice(1).some((attendeeName) => !attendeeName))
+    ) {
+      return NextResponse.json(
+        { error: "Indica nombre y apellidos para cada entrada" },
+        { status: 400 },
+      );
+    }
+
+    const ticketHolderNames =
+      totalTickets === 1
+        ? [buyerName]
+        : [buyerName, ...normalizedAttendeeNames.slice(1)];
+
     const baseUrl = getBaseUrl();
+    let attendeeNamesMetadata: Record<string, string>;
+
+    try {
+      attendeeNamesMetadata = buildAttendeeNamesMetadata(ticketHolderNames);
+    } catch {
+      return NextResponse.json(
+        { error: "Demasiados nombres de asistentes para esta compra" },
+        { status: 400 },
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -213,12 +271,13 @@ export async function POST(req: Request) {
       billing_address_collection: "auto",
       metadata: {
         eventId,
-        buyerName: name,
+        buyerName,
         buyerBirthdate: birthdate,
         buyerEmail: email,
         buyerPhone: phone,
         items: JSON.stringify(items),
         totalAmount: totalAmount.toString(),
+        ...attendeeNamesMetadata,
       },
       payment_intent_data: {
         metadata: {

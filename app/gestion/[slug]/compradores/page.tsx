@@ -3,7 +3,16 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Download, Mail, Phone, Search, Ticket, UserRound } from "lucide-react";
+import {
+  Download,
+  Loader2,
+  Mail,
+  Phone,
+  Search,
+  Ticket,
+  UserRound,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +61,31 @@ type BuyersResponse = {
   };
 };
 
+type BuyerTicketDetail = {
+  id: string;
+  holderName: string;
+  ticketType: string;
+  price: number;
+  used: boolean;
+  usedAt: string | null;
+  ticketNumber: number;
+  downloadUrl: string;
+};
+
+type BuyerTicketsResponse = {
+  order: {
+    id: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerPhone: string;
+  };
+  event: {
+    id: string;
+    title: string;
+  };
+  tickets: BuyerTicketDetail[];
+};
+
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-ES", {
     style: "currency",
@@ -84,6 +118,10 @@ export default function CompradoresPage() {
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
+  const [buyerTickets, setBuyerTickets] = useState<BuyerTicketDetail[]>([]);
+  const [isTicketsLoading, setIsTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState("");
 
   useEffect(() => {
     const loadBuyers = async () => {
@@ -177,6 +215,41 @@ export default function CompradoresPage() {
     URL.revokeObjectURL(url);
   };
 
+  const openBuyerTickets = async (buyer: Buyer) => {
+    setSelectedBuyer(buyer);
+    setBuyerTickets([]);
+    setTicketsError("");
+    setIsTicketsLoading(true);
+
+    const response = await fetch(`/api/orders/${buyer.id}/tickets`, {
+      cache: "no-store",
+    });
+    const data = (await response.json().catch(() => null)) as
+      | BuyerTicketsResponse
+      | { error?: string }
+      | null;
+
+    if (!response.ok) {
+      const message = data && "error" in data ? data.error : null;
+
+      setTicketsError(message ?? "No se pudieron cargar las entradas");
+      setIsTicketsLoading(false);
+      return;
+    }
+
+    const payload = data as BuyerTicketsResponse;
+
+    setBuyerTickets(payload.tickets ?? []);
+    setIsTicketsLoading(false);
+  };
+
+  const closeBuyerTickets = () => {
+    setSelectedBuyer(null);
+    setBuyerTickets([]);
+    setTicketsError("");
+    setIsTicketsLoading(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -185,7 +258,7 @@ export default function CompradoresPage() {
             Compradores de entradas
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
-            Informacion de contacto y resumen de entradas pagadas para este
+            Informacion de contacto y resumen de entradas emitidas para este
             evento.
           </p>
         </div>
@@ -268,7 +341,9 @@ export default function CompradoresPage() {
                 {filteredBuyers.map((buyer) => (
                   <TableRow
                     key={buyer.id}
-                    className="border-zinc-800 hover:bg-zinc-800/60"
+                    onClick={() => openBuyerTickets(buyer)}
+                    className="cursor-pointer border-zinc-800 hover:bg-zinc-800/60"
+                    title="Ver asistentes y descargas"
                   >
                     <TableCell>
                       <div className="font-medium text-white">
@@ -294,7 +369,7 @@ export default function CompradoresPage() {
 
                     <TableCell>
                       <div className="text-sm text-white">
-                        {buyer.ticket_count} compradas
+                        {buyer.ticket_count} emitidas
                       </div>
                       <div className="mt-1 text-xs text-zinc-500">
                         {buyer.used_ticket_count} validadas
@@ -332,6 +407,98 @@ export default function CompradoresPage() {
           )}
         </CardContent>
       </Card>
+
+      {selectedBuyer && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 px-4 py-4 backdrop-blur-sm md:items-center"
+          onClick={closeBuyerTickets}
+        >
+          <div
+            className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-zinc-800 px-5 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  Asistentes de {selectedBuyer.buyer_name}
+                </h3>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {selectedBuyer.ticket_count} entradas emitidas para esta
+                  compra.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeBuyerTickets}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 transition hover:bg-zinc-800 hover:text-white"
+                aria-label="Cerrar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[calc(86vh-5rem)] overflow-y-auto p-5">
+              {isTicketsLoading ? (
+                <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-zinc-400">
+                  <Loader2 size={18} className="animate-spin" />
+                  Cargando entradas...
+                </div>
+              ) : ticketsError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {ticketsError}
+                </div>
+              ) : buyerTickets.length === 0 ? (
+                <div className="py-12 text-center text-sm text-zinc-500">
+                  No hay entradas asociadas a este comprador.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {buyerTickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-white">
+                            {ticket.holderName}
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              ticket.used
+                                ? "bg-amber-500/10 text-amber-300"
+                                : "bg-emerald-500/10 text-emerald-300"
+                            }`}
+                          >
+                            {ticket.used ? "Validada" : "Sin validar"}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-zinc-400">
+                          <span>
+                            Entrada {ticket.ticketNumber}: {ticket.ticketType}
+                          </span>
+                          {ticket.usedAt && (
+                            <span>Validada: {formatDateTime(ticket.usedAt)}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <a
+                        href={ticket.downloadUrl}
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+                      >
+                        <Download size={16} />
+                        Descargar
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

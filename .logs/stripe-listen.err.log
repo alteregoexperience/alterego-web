@@ -1,0 +1,4 @@
+Getting ready...
+Ready! You are using Stripe API Version [2026-03-25.dahlia]. Your webhook signing secret is whsec_bd4f23011f7a95776dfe4b18337a1089513595db819b27436f9750bb12ccf785 (^C to quit)
+time="Thu, 14 May 2026 20:43:01 CEST" level=error msg="Error when writing ping message: websocket: close sent" prefix=websocket.Client.writePump
+time="Thu, 14 May 2026 20:54:31 CEST" level=error msg="Error when writing ping message: websocket: close sent" prefix=websocket.Client.writePump

@@ -9,8 +9,8 @@ import { useState } from "react";
 const links = [
   { href: "/", label: "Inicio" },
   { href: "/eventos", label: "Eventos" },
-  { href: "/terminos-condiciones", label: "Terminos" },
-  { href: "/politica-cookies", label: "Cookies" },
+  { href: "/nuestra-historia", label: "Nuestra historia" },
+  { href: "/contacto", label: "Contacto" },
 ];
 
 export default function PublicNav() {
@@ -25,7 +25,7 @@ export default function PublicNav() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 px-4 pt-4 md:px-6">
       <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-white shadow-[0_0_35px_rgba(168,85,247,0.16)] backdrop-blur-xl md:px-5">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
           <div className="relative h-9 w-9 overflow-hidden rounded-full border border-purple-300/25 bg-purple-500/10">
             <Image
               src="/tortuga_blanca.png"
@@ -35,9 +35,14 @@ export default function PublicNav() {
               className="object-contain p-1"
             />
           </div>
-          <span className="hidden text-sm font-semibold tracking-[0.22em] text-white sm:inline">
-            ALTER EGO
-          </span>
+          <Image
+            src="/pegatina_alter_ego_solo_letras.png"
+            alt="ALTER EGO"
+            width={1748}
+            height={516}
+            priority
+            className="h-auto w-28 max-w-[34vw] drop-shadow-[0_0_14px_rgba(168,85,247,0.28)] sm:w-36 md:w-40"
+          />
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">

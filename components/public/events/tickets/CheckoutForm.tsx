@@ -1,25 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PurchaseBuyer } from "@/types/Ticket";
 
 type Props = {
   loading: boolean;
-  onSubmit: (buyer: PurchaseBuyer) => void;
+  ticketsCount: number;
+  onSubmit: (buyer: PurchaseBuyer, attendeeNames: string[]) => void;
   onCancel: () => void;
 };
 
-export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
+export default function CheckoutForm({
+  loading,
+  ticketsCount,
+  onSubmit,
+  onCancel,
+}: Props) {
   const [buyer, setBuyer] = useState<PurchaseBuyer>({
     name: "",
     birthdate: "",
     email: "",
     phone: "",
   });
+  const [additionalAttendeeNames, setAdditionalAttendeeNames] = useState<
+    string[]
+  >([]);
   const [acceptedAdults, setAcceptedAdults] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const additionalAttendeesCount = Math.max(0, ticketsCount - 1);
+
+    setAdditionalAttendeeNames((prev) =>
+      Array.from(
+        { length: additionalAttendeesCount },
+        (_, index) => prev[index] ?? "",
+      ),
+    );
+  }, [ticketsCount]);
 
   const blockPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -36,7 +56,12 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
   const handleSubmit = () => {
     const errors: Record<string, boolean> = {};
 
-    if (!buyer.name) errors.name = true;
+    const buyerName = buyer.name.trim().replace(/\s+/g, " ");
+    const normalizedAdditionalNames = additionalAttendeeNames.map((name) =>
+      name.trim().replace(/\s+/g, " "),
+    );
+
+    if (!buyerName) errors.name = true;
     if (!buyer.birthdate) errors.birthdate = true;
 
     if (!buyer.email || !isValidEmail(buyer.email)) errors.email = true;
@@ -48,6 +73,10 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
 
     if (!acceptedAdults) errors.acceptedAdults = true;
 
+    normalizedAdditionalNames.forEach((name, index) => {
+      if (!name) errors[`attendee-${index}`] = true;
+    });
+
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -56,7 +85,15 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
     }
 
     setError("");
-    onSubmit(buyer);
+    onSubmit(
+      {
+        ...buyer,
+        name: buyerName,
+        email: buyer.email.trim(),
+        phone: buyer.phone.trim(),
+      },
+      [buyerName, ...normalizedAdditionalNames],
+    );
   };
 
   const inputClass = (field: string) =>
@@ -82,7 +119,7 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
             disabled={loading}
             onChange={(e) => {
               setBuyer({ ...buyer, name: e.target.value });
-              setFieldErrors((prev) => ({ ...prev, acceptedAdults: false }));
+              setFieldErrors((prev) => ({ ...prev, name: false }));
             }}
           />
         </div>
@@ -151,6 +188,43 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
         </div>
       </div>
 
+      {ticketsCount > 1 && (
+        <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div>
+            <h4 className="text-sm tracking-[0.2em] text-gray-400">
+              ASISTENTES
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              El comprador cuenta como asistente 1. Rellena el resto de
+              asistentes.
+            </p>
+          </div>
+
+          {additionalAttendeeNames.map((attendeeName, index) => (
+            <div key={index}>
+              <label className="text-xs text-gray-400 block mb-1">
+                Asistente {index + 2}
+              </label>
+              <input
+                placeholder="Nombre y apellidos del asistente"
+                className={inputClass(`attendee-${index}`)}
+                value={attendeeName}
+                disabled={loading}
+                onChange={(e) => {
+                  const nextNames = [...additionalAttendeeNames];
+                  nextNames[index] = e.target.value;
+                  setAdditionalAttendeeNames(nextNames);
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    [`attendee-${index}`]: false,
+                  }));
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-start gap-3 pt-2">
         <input
           type="checkbox"
@@ -158,7 +232,7 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
           disabled={loading}
           onChange={(e) => {
             setAcceptedAdults(e.target.checked);
-            setFieldErrors((prev) => ({ ...prev, name: false }));
+            setFieldErrors((prev) => ({ ...prev, acceptedAdults: false }));
           }}
           className={`mt-1 accent-purple-600 ${
             fieldErrors.acceptedAdults ? "ring-2 ring-red-500" : ""
@@ -167,7 +241,7 @@ export default function CheckoutForm({ loading, onSubmit, onCancel }: Props) {
 
         <p className="text-xs text-gray-400 leading-relaxed">
           Confirmo que todas las personas que usarán estas entradas son mayores
-          de 18 años. Se podrá solicitar documentación en el acceso al evento.
+          de 18 años. Se solicitará documentación en el acceso al evento.
         </p>
       </div>
 

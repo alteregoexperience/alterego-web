@@ -8,6 +8,7 @@ type Params = {
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string;
+  purchaserName?: string;
   eventName: string;
   eventLocation: string;
   eventDate: string;
@@ -18,11 +19,42 @@ type Params = {
   totalTickets: number;
 };
 
+type TextWidthFont = {
+  widthOfTextAtSize: (text: string, size: number) => number;
+};
+
+function wrapText(
+  text: string,
+  maxWidth: number,
+  size: number,
+  font: TextWidthFont,
+) {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (font.widthOfTextAtSize(nextLine, size) <= maxWidth) {
+      currentLine = nextLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+
+  if (currentLine) lines.push(currentLine);
+
+  return lines;
+}
+
 export async function generateTicketPdf({
   ticketId,
   buyerName,
   buyerEmail,
   buyerPhone,
+  purchaserName,
   eventName,
   eventLocation,
   eventDate,
@@ -211,6 +243,9 @@ export async function generateTicketPdf({
   // BLOQUE COMPRADOR
   // =========================
 
+  const hasSeparatePurchaser =
+    Boolean(purchaserName) && purchaserName !== buyerName;
+
   page.drawRectangle({
     x: 20,
     y: 115,
@@ -219,29 +254,83 @@ export async function generateTicketPdf({
     color: card,
   });
 
-  page.drawText(buyerName, {
-    x: 30,
-    y: 160,
-    size: 11,
-    font: bold,
-    color: rgb(1, 1, 1),
-  });
+  if (hasSeparatePurchaser) {
+    page.drawText("ASISTENTE", {
+      x: 30,
+      y: 162,
+      size: 7,
+      font,
+      color: textMuted,
+    });
 
-  page.drawText(buyerPhone, {
-    x: 30,
-    y: 143,
-    size: 9,
-    font,
-    color: textMuted,
-  });
+    page.drawText(buyerName, {
+      x: 30,
+      y: 145,
+      size: 11,
+      font: bold,
+      color: rgb(1, 1, 1),
+      maxWidth: 155,
+    });
 
-  page.drawText(buyerEmail, {
-    x: 30,
-    y: 128,
-    size: 9,
-    font,
-    color: textMuted,
-  });
+    page.drawText("DATOS DEL COMPRADOR", {
+      x: 210,
+      y: 162,
+      size: 7,
+      font,
+      color: textMuted,
+    });
+
+    page.drawText(purchaserName ?? "", {
+      x: 210,
+      y: 146,
+      size: 8,
+      font: bold,
+      color: rgb(1, 1, 1),
+      maxWidth: 170,
+    });
+
+    page.drawText(buyerPhone, {
+      x: 210,
+      y: 133,
+      size: 7,
+      font,
+      color: textMuted,
+      maxWidth: 170,
+    });
+
+    page.drawText(buyerEmail, {
+      x: 210,
+      y: 122,
+      size: 7,
+      font,
+      color: textMuted,
+      maxWidth: 170,
+    });
+  } else {
+    page.drawText(buyerName, {
+      x: 30,
+      y: 160,
+      size: 11,
+      font: bold,
+      color: rgb(1, 1, 1),
+    });
+
+    page.drawText(buyerPhone, {
+      x: 30,
+      y: 143,
+      size: 9,
+      font,
+      color: textMuted,
+    });
+
+    page.drawText(buyerEmail, {
+      x: 30,
+      y: 128,
+      size: 9,
+      font,
+      color: textMuted,
+    });
+  }
 
   // =========================
   // FOOTER
@@ -348,40 +437,133 @@ export async function generateTicketPdf({
     color: bg,
   });
 
-  page2.drawText("CONDICIONES GENERALES", {
-    x: 40,
-    y: height - 60,
-    size: 16,
+  page2.drawRectangle({
+    x: 0,
+    y: height - 118,
+    width,
+    height: 118,
+    color: rgb(0.12, 0.04, 0.2),
+  });
+
+  page2.drawRectangle({
+    x: 0,
+    y: height - 122,
+    width,
+    height: 4,
+    color: purple,
+  });
+
+  page2.drawRectangle({
+    x: 26,
+    y: height - 96,
+    width: width - 52,
+    height: 56,
+    color: rgb(0.07, 0.06, 0.1),
+  });
+
+  page2.drawImage(logo, {
+    x: 42,
+    y: height - 78,
+    width: 24,
+    height: 24,
+  });
+
+  page2.drawText("MANDAMIENTOS ALTER EGO", {
+    x: 78,
+    y: height - 66,
+    size: 15,
     font: bold,
     color: rgb(1, 1, 1),
   });
 
+  page2.drawRectangle({
+    x: 78,
+    y: height - 76,
+    width: 178,
+    height: 1,
+    color: purple,
+  });
+
   const conditions = [
-    "1. Entrada válida para una sola persona.",
-    "2. El QR solo puede utilizarse una vez.",
-    "3. No se permite la reventa sin autorización.",
-    "4. El evento es exclusivo para mayores de 18 años.",
-    "5. La organización se reserva el derecho de admisión.",
-    "6. La entrada debe conservarse durante todo el evento.",
-    "7. No se admiten devoluciones salvo cancelación.",
-    "8. El asistente acepta normas del evento.",
-    "9. La organización puede modificar horarios.",
-    "10. La entrada implica aceptación de condiciones.",
+    "I- Queda prohibido introducir alcohol, sustancias ilegales, armas u objetos peligrosos al evento.",
+    "II- Nos reservamos el derecho de admision, porque no todo el mundo esta listo para descubrir su alter ego.",
+    "III- Es un requisito cumplir con la edad minima de acceso de la sala. Sera imprescindible mostrar el DNI u otro documento identificativo valido original. No se admiten fotocopias, ya que la organizacion del evento no se hace responsable de entradas robadas/falsificadas.",
+    "IV- Queda limitada la entrada y/o permanencia en el evento a toda persona que:",
+    "A) Se encuentre en estado de embriaguez o consuma cualquier tipo de estupefacientes o sustancia ilegal.",
+    "B) Provoque o incite cualquier desorden o acto de violencia dentro del evento.",
+    "C) Se presente sin ganas de conocer a su verdadero yo.",
+    "D) No cumpla con las medidas higienico-sanitarias del establecimiento, sudar bailando esta permitido, tranquil@.",
+    'V- No estas obligad@ a cumplir tu rol, pero se te ha asignado en base a como eres. Recuerda: "Fiestas diferentes, las crean personas diferentes".',
+    "VI- El equipo de ALTER EGO podra grabar, retransmitir y capturar cada instante. Tu pon la actitud, nosotros ponemos las camaras.",
+    "VII- La devolucion o reembolso de entradas solo se permitira cuando el evento sea cancelado previamente por la propia organizacion.",
+    "VIII- Queda terminantemente prohibido juzgar a nada ni a nadie.",
+    "IX- La organizacion no se hace responsable de objetos perdidos, robados o danados durante el evento.",
+    "X- La compra de la entrada implica la aceptacion de las normas y condiciones.",
+    "XI- La entrada es personal e intransferible.",
   ];
 
-  let y = height - 80;
+  let y = height - 142;
 
-  conditions.forEach((text) => {
-    page2.drawText(text, {
-      x: 40,
-      y,
-      size: 10,
-      font,
-      color: textMuted,
-      maxWidth: width - 80,
-      lineHeight: 14,
+  const conditionSize = 6.9;
+  const lineHeight = 8.4;
+  const paragraphGap = 4;
+  const cardX = 34;
+  const cardWidth = width - 68;
+  const markerWidth = 32;
+  const maxTextWidth = cardWidth - markerWidth - 24;
+
+  conditions.forEach((text, index) => {
+    const markerMatch = text.match(/^([A-Z]+-|[A-Z]\))/);
+    const marker = markerMatch?.[1] ?? "";
+    const body = marker ? text.slice(marker.length).trim() : text;
+    const lines = wrapText(body, maxTextWidth, conditionSize, font);
+    const cardHeight = Math.max(24, lines.length * lineHeight + 13);
+    const cardY = y - cardHeight + 8;
+
+    page2.drawRectangle({
+      x: cardX,
+      y: cardY,
+      width: cardWidth,
+      height: cardHeight,
+      color: index % 2 === 0 ? rgb(0.09, 0.08, 0.13) : rgb(0.07, 0.07, 0.11),
     });
-    y -= 18;
+
+    page2.drawRectangle({
+      x: cardX,
+      y: cardY,
+      width: 3,
+      height: cardHeight,
+      color: purple,
+    });
+
+    page2.drawText(marker, {
+      x: cardX + 12,
+      y: y - 7,
+      size: 7.2,
+      font: bold,
+      color: rgb(0.8, 0.7, 1),
+    });
+
+    lines.forEach((line, lineIndex) => {
+      page2.drawText(line, {
+        x: cardX + markerWidth + 12,
+        y: y - lineIndex * lineHeight - 7,
+        size: conditionSize,
+        font,
+        color: lineIndex === 0 ? rgb(0.86, 0.86, 0.94) : textMuted,
+      });
+    });
+
+    y = cardY - paragraphGap;
   });
+
+  page2.drawRectangle({
+    x: 34,
+    y: 30,
+    width: width - 68,
+    height: 1,
+    color: rgb(0.22, 0.18, 0.3),
+  });
+
   return await pdf.save();
 }

@@ -106,7 +106,7 @@ export async function POST(req: Request) {
         buyer_birthdate: "1900-01-01",
         buyer_email: buyerEmail,
         buyer_phone: buyerPhone,
-        total_amount: Number(ticketType.price ?? 0) * quantity,
+        total_amount: 0,
         status: "paid",
         fulfilled_at: new Date().toISOString(),
       })

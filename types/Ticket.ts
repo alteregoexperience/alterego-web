@@ -62,4 +62,5 @@ export type PurchasePayload = {
   eventId: string;
   buyer: PurchaseBuyer;
   items: PurchaseItem[];
+  attendeeNames?: string[];
 };

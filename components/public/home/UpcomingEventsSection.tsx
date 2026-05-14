@@ -37,18 +37,13 @@ export default function UpcomingEventsSection({ events }: { events: Event[] }) {
     <>
       <section id="upcoming-events">
         <SectionContainer>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-3">
-            Proximos eventos
+          <h2 className="mb-10 text-3xl font-semibold md:text-4xl">
+            Próximos eventos
           </h2>
-
-          <p className="text-gray-400 mb-10 max-w-xl">
-            Descubre los proximos eventos y participa en la experiencia ALTER
-            EGO.
-          </p>
 
           {events.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
-              No hay eventos programados todavia.
+              No hay eventos programados todavía.
             </div>
           ) : (
             <>

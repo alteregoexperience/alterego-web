@@ -56,6 +56,10 @@ export default function TicketsSection({ event }: { event: Event }) {
   }, [event.id]);
 
   const hasSelection = Object.values(quantities).some((q) => q > 0);
+  const selectedTicketsCount = Object.values(quantities).reduce(
+    (acc, quantity) => acc + quantity,
+    0,
+  );
 
   const handleReminder = async () => {
     setReminderLoading(true);
@@ -102,7 +106,10 @@ export default function TicketsSection({ event }: { event: Event }) {
     }
   };
 
-  const handlePurchase = async (buyer: PurchaseBuyer) => {
+  const handlePurchase = async (
+    buyer: PurchaseBuyer,
+    attendeeNames: string[],
+  ) => {
     setLoading(true);
 
     try {
@@ -122,6 +129,7 @@ export default function TicketsSection({ event }: { event: Event }) {
           eventId: event.id,
           buyer,
           items,
+          attendeeNames,
         }),
       });
 
@@ -190,7 +198,7 @@ export default function TicketsSection({ event }: { event: Event }) {
 
           <div className="text-sm text-gray-300 space-y-1 pt-2">
             <p>Entradas: {purchaseResult.ticketsCount}</p>
-            <p>Total: {purchaseResult.total} EUR</p>
+            <p>Total: {purchaseResult.total} €</p>
           </div>
 
           <button
@@ -206,7 +214,7 @@ export default function TicketsSection({ event }: { event: Event }) {
 
   if (!isSaleOpen && salesStart) {
     return (
-      <div className="mt-12">
+      <div className="mt-0">
         <h3 className="text-sm tracking-[0.2em] text-gray-400 mb-6">
           ENTRADAS
         </h3>
@@ -220,7 +228,7 @@ export default function TicketsSection({ event }: { event: Event }) {
 
               <div>
                 <p className="text-lg font-semibold text-white">
-                  La venta todavia no esta abierta
+                  La venta todavía no está abierta
                 </p>
                 <p className="mt-1 text-sm leading-6 text-gray-400">
                   Las entradas estaran disponibles el{" "}
@@ -271,7 +279,7 @@ export default function TicketsSection({ event }: { event: Event }) {
   }
 
   return (
-    <div className="mt-12">
+    <div className="mt-0">
       <h3 className="text-sm tracking-[0.2em] text-gray-400 mb-6">ENTRADAS</h3>
 
       <div className="rounded-2xl border border-white/10 bg-white/5 divide-y divide-white/10">
@@ -288,11 +296,11 @@ export default function TicketsSection({ event }: { event: Event }) {
           return (
             <div
               key={ticket.id}
-              className={`p-5 flex items-center justify-between ${
+              className={`flex items-center justify-between gap-4 p-5 ${
                 soldOut ? "opacity-40" : ""
               }`}
             >
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-medium">{ticket.name}</p>
 
                 {ticket.description && (
@@ -306,8 +314,10 @@ export default function TicketsSection({ event }: { event: Event }) {
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="font-semibold">{ticket.price} EUR</span>
+              <div className="ml-2 flex shrink-0 items-center gap-3">
+                <span className="whitespace-nowrap font-semibold tabular-nums">
+                  {ticket.price} €
+                </span>
 
                 {!soldOut && (
                   <div className="flex items-center gap-2">
@@ -351,6 +361,7 @@ export default function TicketsSection({ event }: { event: Event }) {
         {showCheckout && (
           <CheckoutForm
             loading={loading}
+            ticketsCount={selectedTicketsCount}
             onCancel={() => setShowCheckout(false)}
             onSubmit={handlePurchase}
           />
