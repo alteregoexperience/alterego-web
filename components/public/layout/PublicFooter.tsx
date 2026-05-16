@@ -25,8 +25,8 @@ export default function PublicFooter() {
 
   return (
     <footer className="border-t border-white/10 bg-black/35 px-6 py-10 text-white backdrop-blur-xl md:px-10">
-      <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.1fr_0.8fr_0.8fr] md:items-start">
-        <div>
+      <div className="mx-auto grid min-w-0 max-w-7xl gap-10 md:grid-cols-[1.1fr_0.8fr_0.8fr] md:items-start">
+        <div className="min-w-0">
           <Link href="/" className="inline-flex items-center gap-3">
             <div className="relative h-10 w-10 overflow-hidden rounded-full border border-purple-300/25 bg-purple-500/10">
               <Image
@@ -47,7 +47,7 @@ export default function PublicFooter() {
           </Link>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-purple-200">
             Legal
           </h2>
@@ -64,16 +64,18 @@ export default function PublicFooter() {
           </nav>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-purple-200">
             Contacto
           </h2>
           <a
             href="mailto:a.ego.experience@gmail.com"
-            className="mt-4 inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-white"
+            className="mt-4 inline-flex max-w-full min-w-0 items-start gap-2 text-sm text-zinc-400 transition hover:text-white"
           >
-            <Mail className="h-4 w-4 text-purple-300" />
-            a.ego.experience@gmail.com
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-purple-300" />
+            <span className="min-w-0 break-words">
+              a.ego.experience@gmail.com
+            </span>
           </a>
 
           <div className="mt-5 flex items-center gap-3">

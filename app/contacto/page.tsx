@@ -26,8 +26,8 @@ export default function ContactoPage() {
   return (
     <PublicBackground>
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-32 text-white md:px-10 md:pt-36">
-        <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-          <div>
+        <section className="grid min-w-0 gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+          <div className="min-w-0">
             <p className="text-sm uppercase tracking-[0.22em] text-purple-200">
               Contacto
             </p>
@@ -40,7 +40,7 @@ export default function ContactoPage() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <a
               href={whatsappHref}
               target="_blank"
@@ -51,15 +51,12 @@ export default function ContactoPage() {
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-white transition group-hover:bg-purple-500">
                   <MessageCircle className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm uppercase tracking-[0.18em] text-purple-200">
                     WhatsApp
                   </p>
                   <p className="mt-2 text-2xl font-semibold text-white">
-                    {phoneDisplay}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-400">
-                    Toca para abrir el chat directamente.
+                    <span className="break-words">{phoneDisplay}</span>
                   </p>
                 </div>
               </div>
@@ -103,9 +100,11 @@ export default function ContactoPage() {
                         className="h-5 w-5 object-contain"
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-white">{social.label}</p>
-                      <p className="text-sm text-zinc-400">{social.handle}</p>
+                      <p className="break-words text-sm text-zinc-400">
+                        {social.handle}
+                      </p>
                     </div>
                   </div>
                 </a>
