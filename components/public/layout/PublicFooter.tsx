@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { ArrowUpRight, Mail } from "lucide-react";
 
 const legalLinks = [
   { href: "/terminos-condiciones", label: "Términos y condiciones" },
@@ -103,7 +103,22 @@ export default function PublicFooter() {
 
       <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-6 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
         <p>© {year} ALTER EGO Experience. Todos los derechos reservados.</p>
-        <p>Creando historias para noches que merecen contarse.</p>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <p>Creando historias para noches que merecen contarse.</p>
+          <a
+            href="https://isaiahhub.com"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Isaiah Hub portfolio"
+            className="group inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] tracking-wide text-zinc-500 transition duration-300 hover:border-purple-300/35 hover:text-zinc-300"
+          >
+            <span>Crafted by</span>
+            <span className="font-medium text-zinc-400 transition group-hover:text-purple-200">
+              Isaiah Quintana
+            </span>
+            <ArrowUpRight className="h-3 w-3 transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-purple-200" />
+          </a>
+        </div>
       </div>
     </footer>
   );
