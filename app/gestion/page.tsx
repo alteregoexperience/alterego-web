@@ -24,8 +24,10 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  ArchiveRestore,
 } from "lucide-react";
 import { isTicketingOpen } from "@/lib/events";
+import { EVENT_DELETION_RETENTION_DAYS } from "@/lib/eventDeletion";
 
 export default function GestionDashboard() {
   const router = useRouter();
@@ -82,13 +84,23 @@ export default function GestionDashboard() {
         title="Panel de gestión"
         subtitle="Próximos eventos"
         right={
-          <Button
-            onClick={() => router.push("/gestion/eventos/nuevo")}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            <Plus size={16} className="mr-2" />
-            Crear evento
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/gestion/eventos/eliminados")}
+              className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            >
+              <ArchiveRestore size={16} className="mr-2" />
+              Eventos eliminados
+            </Button>
+            <Button
+              onClick={() => router.push("/gestion/eventos/nuevo")}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Plus size={16} className="mr-2" />
+              Crear evento
+            </Button>
+          </div>
         }
       />
 
@@ -143,7 +155,7 @@ function EventCard({ event }: { event: EventListItem }) {
   const deleteEvent = async () => {
     setLoading(true);
 
-    await fetch("/api/events/delete", {
+    const response = await fetch("/api/events/delete", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -151,7 +163,12 @@ function EventCard({ event }: { event: EventListItem }) {
       body: JSON.stringify({ eventId: event.id }),
     });
 
-    window.location.reload();
+    if (response.ok) {
+      window.location.reload();
+      return;
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -319,7 +336,9 @@ function EventCard({ event }: { event: EventListItem }) {
             </div>
 
             <div className="text-sm text-zinc-400 mt-2">
-              Esta acción eliminará el evento y todos sus participantes.
+              El evento se ocultará y podrá recuperarse durante{" "}
+              {EVENT_DELETION_RETENTION_DAYS} días desde el apartado de eventos
+              eliminados.
             </div>
 
             <div className="flex gap-3 mt-6">

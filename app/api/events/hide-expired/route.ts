@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { renderTicketSaleReminderEmail } from "@/lib/emailTicketSaleReminderTemplate";
 import { getBaseUrl } from "@/lib/getBaseUrl";
 import { resend } from "@/lib/resend";
+import { getEventDeletionCutoff } from "@/lib/eventDeletion";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,21 @@ export async function GET(req: Request) {
 
   const now = new Date().toISOString();
 
+  const { data: purgedEvents, error: purgeError } = await supabaseAdmin
+    .from("events")
+    .delete()
+    .not("deleted_at", "is", null)
+    .lt("deleted_at", getEventDeletionCutoff().toISOString())
+    .select("id");
+
+  if (purgeError) {
+    return NextResponse.json({ error: purgeError.message }, { status: 500 });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("events")
     .update({ is_visible: false })
+    .is("deleted_at", null)
     .eq("is_visible", true)
     .lt("ends_at", now)
     .select("id");
@@ -76,6 +89,7 @@ export async function GET(req: Request) {
     return NextResponse.json(
       {
         error: reminderError,
+        purgedCount: purgedEvents?.length ?? 0,
         hiddenCount: data?.length ?? 0,
         sentReminderCount: sentCount,
         forceReminderMode: forceReminders,
@@ -86,6 +100,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     success: true,
+    purgedCount: purgedEvents?.length ?? 0,
     hiddenCount: data?.length ?? 0,
     sentReminderCount: sentCount,
     forceReminderMode: forceReminders,
@@ -111,6 +126,7 @@ async function sendPendingTicketReminders(now: string, forceReminders = false) {
     )
     .is("sent_at", null)
     .eq("events.is_visible", true)
+    .is("events.deleted_at", null)
     .limit(100);
 
   if (!forceReminders) {

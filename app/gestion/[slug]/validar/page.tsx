@@ -69,6 +69,7 @@ export default function ValidarEntradasPage() {
         .from("events")
         .select("id, title")
         .eq("slug", slug)
+        .is("deleted_at", null)
         .single();
 
       if (data) {

@@ -9,6 +9,7 @@ import {
   Mail,
   Phone,
   Search,
+  Send,
   Ticket,
   UserRound,
   X,
@@ -86,6 +87,12 @@ type BuyerTicketsResponse = {
   tickets: BuyerTicketDetail[];
 };
 
+type ResendTicketsResponse = {
+  success: true;
+  recipient: string;
+  ticketCount: number;
+};
+
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("es-ES", {
     style: "currency",
@@ -122,6 +129,11 @@ export default function CompradoresPage() {
   const [buyerTickets, setBuyerTickets] = useState<BuyerTicketDetail[]>([]);
   const [isTicketsLoading, setIsTicketsLoading] = useState(false);
   const [ticketsError, setTicketsError] = useState("");
+  const [isResending, setIsResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     const loadBuyers = async () => {
@@ -219,6 +231,7 @@ export default function CompradoresPage() {
     setSelectedBuyer(buyer);
     setBuyerTickets([]);
     setTicketsError("");
+    setResendStatus(null);
     setIsTicketsLoading(true);
 
     const response = await fetch(`/api/orders/${buyer.id}/tickets`, {
@@ -248,6 +261,50 @@ export default function CompradoresPage() {
     setBuyerTickets([]);
     setTicketsError("");
     setIsTicketsLoading(false);
+    setIsResending(false);
+    setResendStatus(null);
+  };
+
+  const resendBuyerTickets = async () => {
+    if (!selectedBuyer || isResending) return;
+
+    setIsResending(true);
+    setResendStatus(null);
+
+    try {
+      const response = await fetch(
+        `/api/orders/${selectedBuyer.id}/tickets/resend`,
+        { method: "POST" },
+      );
+      const data = (await response.json().catch(() => null)) as
+        | ResendTicketsResponse
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        const message = data && "error" in data ? data.error : null;
+
+        setResendStatus({
+          type: "error",
+          message: message ?? "No se pudieron reenviar las entradas",
+        });
+        return;
+      }
+
+      const result = data as ResendTicketsResponse;
+
+      setResendStatus({
+        type: "success",
+        message: `${result.ticketCount} entradas reenviadas a ${result.recipient}`,
+      });
+    } catch {
+      setResendStatus({
+        type: "error",
+        message: "No se pudieron reenviar las entradas",
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   return (
@@ -453,46 +510,90 @@ export default function CompradoresPage() {
                   No hay entradas asociadas a este comprador.
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {buyerTickets.map((ticket) => (
-                    <div
-                      key={ticket.id}
-                      className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 md:flex-row md:items-center md:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-white">
-                            {ticket.holderName}
-                          </p>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${
-                              ticket.used
-                                ? "bg-amber-500/10 text-amber-300"
-                                : "bg-emerald-500/10 text-emerald-300"
-                            }`}
-                          >
-                            {ticket.used ? "Validada" : "Sin validar"}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-zinc-400">
-                          <span>
-                            Entrada {ticket.ticketNumber}: {ticket.ticketType}
-                          </span>
-                          {ticket.usedAt && (
-                            <span>Validada: {formatDateTime(ticket.usedAt)}</span>
-                          )}
-                        </div>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-white">
+                          Reenviar la compra completa
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          Se enviaran las {buyerTickets.length} entradas a {" "}
+                          {selectedBuyer.buyer_email}.
+                        </p>
                       </div>
 
-                      <a
-                        href={ticket.downloadUrl}
-                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+                      <Button
+                        type="button"
+                        onClick={resendBuyerTickets}
+                        disabled={isResending}
+                        className="shrink-0 bg-purple-600 text-white hover:bg-purple-700"
                       >
-                        <Download size={16} />
-                        Descargar
-                      </a>
+                        {isResending ? (
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                        ) : (
+                          <Send size={16} className="mr-2" />
+                        )}
+                        {isResending ? "Reenviando..." : "Reenviar todas"}
+                      </Button>
                     </div>
-                  ))}
+
+                    {resendStatus && (
+                      <div
+                        className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+                          resendStatus.type === "success"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                            : "border-red-500/30 bg-red-500/10 text-red-300"
+                        }`}
+                      >
+                        {resendStatus.message}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    {buyerTickets.map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-white">
+                              {ticket.holderName}
+                            </p>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs ${
+                                ticket.used
+                                  ? "bg-amber-500/10 text-amber-300"
+                                  : "bg-emerald-500/10 text-emerald-300"
+                              }`}
+                            >
+                              {ticket.used ? "Validada" : "Sin validar"}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-zinc-400">
+                            <span>
+                              Entrada {ticket.ticketNumber}: {ticket.ticketType}
+                            </span>
+                            {ticket.usedAt && (
+                              <span>
+                                Validada: {formatDateTime(ticket.usedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <a
+                          href={ticket.downloadUrl}
+                          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+                        >
+                          <Download size={16} />
+                          Descargar
+                        </a>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

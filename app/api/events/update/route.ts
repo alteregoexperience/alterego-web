@@ -43,7 +43,8 @@ export async function POST(req: Request) {
       ticket_sales_start_at: ticket_sales_start_at || null,
       is_visible: Boolean(is_visible),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .is("deleted_at", null);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

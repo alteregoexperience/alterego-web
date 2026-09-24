@@ -76,6 +76,7 @@ export default function ImportarParticipantesPage() {
         .from("events")
         .select("id")
         .eq("slug", slug)
+        .is("deleted_at", null)
         .single();
 
       if (data?.id) {

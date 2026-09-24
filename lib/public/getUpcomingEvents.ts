@@ -14,6 +14,7 @@ export async function getPublicEvents(limit?: number): Promise<Event[]> {
   let query = supabase
     .from("events")
     .select("*")
+    .is("deleted_at", null)
     .eq("is_visible", true)
     .gte("starts_at", now)
     .or(`ends_at.is.null,ends_at.gte.${now}`)

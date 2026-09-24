@@ -1,6 +1,9 @@
 import Stripe from "stripe";
 
+import { renderPurchaseEmail } from "@/lib/emailPurchaseTemplate";
+import { formatTicketEventDateTime } from "@/lib/formatTicketEventDateTime";
 import { generateTicketPdf } from "@/lib/generateTicketPdf";
+import { resend } from "@/lib/resend";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -18,8 +21,10 @@ type TicketRow = {
   event_ticket_types: TicketTypeRelation | TicketTypeRelation[] | null;
 };
 
-type TicketWithOrderRow = TicketRow & {
+type TicketOrderReference = {
+  id: string;
   order_id: string;
+  event_id: string;
 };
 
 function firstRelation<T>(value: T | T[] | null) {
@@ -126,6 +131,7 @@ export async function getOrderTicketDetails(orderId: string) {
     `,
     )
     .eq("order_id", order.id)
+    .eq("event_id", order.event_id)
     .order("created_at", { ascending: true });
 
   if (ticketsError) {
@@ -160,44 +166,16 @@ export async function getOrderTicketDetails(orderId: string) {
   };
 }
 
-export async function generateExistingTicketPdf(ticketId: string) {
-  const { data: ticket, error } = await supabaseAdmin
-    .from("tickets")
-    .select("id, order_id")
-    .eq("id", ticketId)
-    .single();
-
-  if (error || !ticket) {
-    throw new Error("Ticket no encontrado");
-  }
-
-  const details = await getOrderTicketDetails(
-    (ticket as unknown as TicketWithOrderRow).order_id,
-  );
-  const detail = details.tickets.find((item) => item.id === ticketId);
-
-  if (!detail) {
-    throw new Error("Ticket no encontrado en la orden");
-  }
-
+async function generateTicketPdfFromOrder(
+  details: Awaited<ReturnType<typeof getOrderTicketDetails>>,
+  detail: Awaited<ReturnType<typeof getOrderTicketDetails>>["tickets"][number],
+) {
   const eventName = details.event.title ?? "ALTER EGO";
   const eventLocation = details.event.location ?? "";
-  const eventDate = details.event.starts_at
-    ? new Date(details.event.starts_at).toLocaleDateString("es-ES")
-    : "";
-  const startTime = details.event.starts_at
-    ? new Date(details.event.starts_at).toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-  const endTime = details.event.ends_at
-    ? new Date(details.event.ends_at).toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-  const eventTime = endTime ? `${startTime} - ${endTime}` : startTime;
+  const { eventDate, eventTime } = formatTicketEventDateTime(
+    details.event.starts_at,
+    details.event.ends_at,
+  );
   const pdfBytes = await generateTicketPdf({
     ticketId: detail.qrCode,
     buyerName: detail.holderName,
@@ -220,5 +198,72 @@ export async function generateExistingTicketPdf(ticketId: string) {
   return {
     fileName: `${sanitizeFilePart(eventName)}_${sanitizeFilePart(detail.holderName)}_${detail.ticketNumber}.pdf`,
     pdfBytes,
+  };
+}
+
+export async function generateExistingTicketPdf(ticketId: string) {
+  const { data: ticket, error } = await supabaseAdmin
+    .from("tickets")
+    .select("id, order_id, event_id")
+    .eq("id", ticketId)
+    .single();
+
+  if (error || !ticket) {
+    throw new Error("Ticket no encontrado");
+  }
+
+  const ticketReference = ticket as unknown as TicketOrderReference;
+  const details = await getOrderTicketDetails(ticketReference.order_id);
+  const detail = details.tickets.find((item) => item.id === ticketId);
+
+  if (!detail || details.event.id !== ticketReference.event_id) {
+    throw new Error("Ticket no encontrado en la orden");
+  }
+
+  return generateTicketPdfFromOrder(details, detail);
+}
+
+export async function resendOrderTickets(orderId: string) {
+  const details = await getOrderTicketDetails(orderId);
+  const recipient = details.order.buyer_email?.trim();
+
+  if (!recipient) {
+    throw new Error("La compra no tiene un email de destinatario");
+  }
+
+  if (details.tickets.length === 0) {
+    throw new Error("La compra no tiene entradas asociadas");
+  }
+
+  const attachments = await Promise.all(
+    details.tickets.map(async (ticket) => {
+      const { fileName, pdfBytes } = await generateTicketPdfFromOrder(
+        details,
+        ticket,
+      );
+
+      return {
+        filename: fileName,
+        content: Buffer.from(pdfBytes),
+      };
+    }),
+  );
+
+  const { error } = await resend.emails.send({
+    from: "ALTER EGO <tickets@alteregoexperience.org>",
+    to: recipient,
+    subject: "ALTER EGO - Tus entradas",
+    html: renderPurchaseEmail({ name: details.order.buyer_name }),
+    attachments,
+  });
+
+  if (error) {
+    console.error("Error reenviando entradas de la orden:", error);
+    throw new Error("No se pudieron reenviar las entradas");
+  }
+
+  return {
+    recipient,
+    ticketCount: details.tickets.length,
   };
 }

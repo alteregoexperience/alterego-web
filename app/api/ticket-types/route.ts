@@ -28,6 +28,7 @@ export async function GET(req: Request) {
     .from("events")
     .select("id")
     .eq("slug", slug)
+    .is("deleted_at", null)
     .single();
 
   if (eventError || !event) {
@@ -109,6 +110,23 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "id requerido" }, { status: 400 });
   }
 
+  if (body.status !== undefined) {
+    if (body.status !== "active" && body.status !== "inactive") {
+      return NextResponse.json({ error: "status no valido" }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("event_ticket_types")
+      .update({ status: body.status })
+      .eq("id", body.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
   const { error } = await supabaseAdmin
     .from("event_ticket_types")
     .update({
@@ -138,7 +156,7 @@ export async function DELETE(req: Request) {
 
   const { error } = await supabaseAdmin
     .from("event_ticket_types")
-    .delete()
+    .update({ status: "inactive" })
     .eq("id", id);
 
   if (error) {

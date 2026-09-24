@@ -66,7 +66,7 @@ export default function EventDrawerContent({
               </h1>
 
               {event.description && (
-                <p className="text-gray-400 mt-3 max-w-xl">
+                <p className="whitespace-pre-wrap text-gray-400 mt-3 max-w-xl">
                   {event.description}
                 </p>
               )}

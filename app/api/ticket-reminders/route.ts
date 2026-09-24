@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       .from("events")
       .select("id, is_visible, ticket_sales_start_at")
       .eq("id", eventId)
+      .is("deleted_at", null)
       .single();
 
     if (eventError || !event || event.is_visible !== true) {

@@ -24,6 +24,7 @@ export default function GestionEventLayout({
         .from("events")
         .select("*")
         .eq("slug", slug)
+        .is("deleted_at", null)
         .single();
 
       if (data) setEvent(data);

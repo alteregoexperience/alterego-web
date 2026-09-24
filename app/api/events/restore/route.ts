@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+
 import { checkAuth } from "@/lib/auth";
+import { getEventDeletionCutoff } from "@/lib/eventDeletion";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
@@ -17,12 +19,10 @@ export async function POST(req: Request) {
 
   const { data: event, error } = await supabaseAdmin
     .from("events")
-    .update({
-      deleted_at: new Date().toISOString(),
-      is_visible: false,
-    })
+    .update({ deleted_at: null })
     .eq("id", eventId)
-    .is("deleted_at", null)
+    .not("deleted_at", "is", null)
+    .gt("deleted_at", getEventDeletionCutoff().toISOString())
     .select("id")
     .maybeSingle();
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
   if (!event) {
     return NextResponse.json(
-      { error: "Evento no encontrado o ya eliminado" },
+      { error: "El evento no existe o ya ha vencido su periodo de retencion" },
       { status: 404 },
     );
   }

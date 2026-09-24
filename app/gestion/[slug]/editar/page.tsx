@@ -21,6 +21,7 @@ export default function EditEventPage() {
         .from("events")
         .select("*")
         .eq("slug", slug)
+        .is("deleted_at", null)
         .single();
 
       if (!error && data) {

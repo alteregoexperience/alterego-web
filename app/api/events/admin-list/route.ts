@@ -20,9 +20,11 @@ export async function GET() {
       starts_at,
       ends_at,
       ticket_sales_start_at,
-      is_visible
+      is_visible,
+      tickets(count)
     `,
     )
+    .is("deleted_at", null)
     .order("starts_at", { ascending: true });
 
   if (eventsError) {
@@ -45,32 +47,6 @@ export async function GET() {
     );
   }
 
-  const { data: ticketTypes, error: ticketTypesError } = eventIds.length
-    ? await supabaseAdmin
-        .from("event_ticket_types")
-        .select("event_id, sold")
-        .in("event_id", eventIds)
-    : { data: [], error: null };
-
-  if (ticketTypesError) {
-    return NextResponse.json(
-      { error: ticketTypesError.message },
-      { status: 500 },
-    );
-  }
-
-  const soldByEventId = (ticketTypes ?? []).reduce<Record<string, number>>(
-    (acc, ticketType) => {
-      if (!ticketType.event_id) return acc;
-
-      acc[ticketType.event_id] =
-        (acc[ticketType.event_id] ?? 0) + Number(ticketType.sold ?? 0);
-
-      return acc;
-    },
-    {},
-  );
-
   const participantsByEventId = (eventParticipants ?? []).reduce<
     Record<string, number>
   >((acc, participant) => {
@@ -82,14 +58,18 @@ export async function GET() {
   }, {});
 
   return NextResponse.json({
-    events: (events ?? []).map((event) => ({
-      ...event,
-      event_participants: [
-        {
-          count: participantsByEventId[event.id] ?? 0,
-        },
-      ],
-      sold_tickets: soldByEventId[event.id] ?? 0,
-    })),
+    events: (events ?? []).map((event) => {
+      const { tickets, ...eventData } = event;
+
+      return {
+        ...eventData,
+        event_participants: [
+          {
+            count: participantsByEventId[event.id] ?? 0,
+          },
+        ],
+        sold_tickets: tickets?.[0]?.count ?? 0,
+      };
+    }),
   });
 }

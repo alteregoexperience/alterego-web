@@ -3,6 +3,7 @@ import { PurchasePayload, Ticket } from "@/types/Ticket";
 import { resend } from "@/lib/resend";
 import { renderPurchaseEmail } from "@/lib/emailPurchaseTemplate";
 import { generateTicketPdf } from "@/lib/generateTicketPdf";
+import { formatTicketEventDateTime } from "@/lib/formatTicketEventDateTime";
 
 export async function handleSuccessfulPurchase({
   eventId,
@@ -111,22 +112,10 @@ export async function handleSuccessfulPurchase({
     .single();
   const eventName = event?.title ?? "ALTER EGO";
   const eventLocation = event?.location ?? "";
-  const eventDate = event?.starts_at
-    ? new Date(event.starts_at).toLocaleDateString("es-ES")
-    : "";
-  const startTime = event?.starts_at
-    ? new Date(event.starts_at).toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-  const endTime = event?.ends_at
-    ? new Date(event.ends_at).toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-  const eventTime = endTime ? `${startTime} - ${endTime}` : startTime;
+  const { eventDate, eventTime } = formatTicketEventDateTime(
+    event?.starts_at,
+    event?.ends_at,
+  );
 
   const ticketsToInsert: Omit<
     Ticket,

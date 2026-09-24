@@ -5,6 +5,7 @@ import * as QRCode from "qrcode";
 import { resend } from "@/lib/resend";
 import { renderPurchaseEmail } from "@/lib/emailPurchaseTemplate";
 import { generateTicketPdf } from "@/lib/generateTicketPdf";
+import { formatTicketEventDateTime } from "@/lib/formatTicketEventDateTime";
 
 function calculateAge(birthdate: string) {
   const today = new Date();
@@ -46,6 +47,20 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Debes ser mayor de 18 años" },
         { status: 400 },
+      );
+    }
+
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from("events")
+      .select("title, description, location, starts_at, ends_at")
+      .eq("id", eventId)
+      .is("deleted_at", null)
+      .single();
+
+    if (eventError || !event) {
+      return NextResponse.json(
+        { error: "Evento no encontrado" },
+        { status: 404 },
       );
     }
 
@@ -109,12 +124,6 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    const { data: event } = await supabaseAdmin
-      .from("events")
-      .select("title, description, location, starts_at, ends_at")
-      .eq("id", eventId)
-      .single();
-
     if (orderError || !order) {
       return NextResponse.json(
         { error: "Error creando order" },
@@ -164,6 +173,11 @@ export async function POST(req: Request) {
       }),
     );
 
+    const { eventDate, eventTime } = formatTicketEventDateTime(
+      event?.starts_at,
+      event?.ends_at,
+    );
+
     // generar PDFs por ticket
     const attachments = await Promise.all(
       insertedTickets.map(async (ticket, index) => {
@@ -178,14 +192,8 @@ export async function POST(req: Request) {
           buyerPhone: phone,
           eventName: event?.title,
           eventLocation: event?.location,
-          eventDate: new Date(event?.starts_at).toLocaleDateString("es-ES"),
-          eventTime: `${new Date(event?.starts_at).toLocaleTimeString("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })} - ${new Date(event?.ends_at).toLocaleTimeString("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
+          eventDate,
+          eventTime,
           price: ticketType?.price || 0,
           ticketType: ticketType?.name || "",
           ticketNumber: index + 1,

@@ -113,6 +113,7 @@ export async function POST(req: Request) {
       .from("events")
       .select("*")
       .eq("id", eventId)
+      .is("deleted_at", null)
       .single();
 
     if (eventError || !event) {

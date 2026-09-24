@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 
 import { checkAuth } from "@/lib/auth";
+import { formatTicketEventDateTime } from "@/lib/formatTicketEventDateTime";
 import { generateTicketPdf } from "@/lib/generateTicketPdf";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Ticket } from "@/types/Ticket";
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
       .from("events")
       .select("id, title, location, starts_at, ends_at")
       .eq("id", eventId)
+      .is("deleted_at", null)
       .single();
 
     if (eventError || !event) {
@@ -158,18 +160,10 @@ export async function POST(req: Request) {
     }
 
     const mergedPdf = await PDFDocument.create();
-    const eventDate = new Date(event.starts_at).toLocaleDateString("es-ES");
-    const startTime = new Date(event.starts_at).toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const endTime = event.ends_at
-      ? new Date(event.ends_at).toLocaleTimeString("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "";
-    const eventTime = endTime ? `${startTime} - ${endTime}` : startTime;
+    const { eventDate, eventTime } = formatTicketEventDateTime(
+      event.starts_at,
+      event.ends_at,
+    );
 
     for (const [index, ticket] of insertedTickets.entries()) {
       const ticketPdfBytes = await generateTicketPdf({

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -71,11 +72,12 @@ export default function EventForm({ initial, onSubmit, submitLabel }: Props) {
         className="bg-zinc-950 border-zinc-700 text-white"
       />
 
-      <Input
+      <Textarea
         placeholder="Descripción (opcional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="bg-zinc-950 border-zinc-700 text-white"
+        rows={5}
+        className="resize-y bg-zinc-950 border-zinc-700 text-white"
       />
 
       <div className="space-y-2">

@@ -5,6 +5,7 @@ export async function getEventBySlug(slug: string) {
     .from("events")
     .select("id, name, slug")
     .eq("slug", slug)
+    .is("deleted_at", null)
     .single();
 
   if (error) {

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ImagePlus, Plus, Trash2 } from "lucide-react";
 
@@ -205,11 +206,12 @@ export default function CrearEventoPage() {
             className="bg-zinc-950 border-zinc-700 text-white"
           />
 
-          <Input
+          <Textarea
             placeholder="Descripcion"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="bg-zinc-950 border-zinc-700 text-white"
+            rows={5}
+            className="resize-y bg-zinc-950 border-zinc-700 text-white"
           />
 
           <div>

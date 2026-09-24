@@ -45,6 +45,7 @@ export default function EntradasManualesPage() {
         .from("events")
         .select("id")
         .eq("slug", slug)
+        .is("deleted_at", null)
         .single();
 
       if (!event) {

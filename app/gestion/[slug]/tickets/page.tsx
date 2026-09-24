@@ -5,10 +5,11 @@ import { useParams } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
+  Eye,
+  EyeOff,
   Infinity,
   Pencil,
   Plus,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,7 @@ type TicketType = {
   price: number;
   stock: number | null;
   sold: number | null;
+  status: string | null;
   order_index: number | null;
 };
 
@@ -153,11 +155,14 @@ export default function TicketsPage() {
     refreshTickets();
   };
 
-  const deleteTicket = async (id: string) => {
+  const updateTicketStatus = async (id: string, status: string | null) => {
     await fetch("/api/ticket-types", {
-      method: "DELETE",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({
+        id,
+        status: status === "active" ? "inactive" : "active",
+      }),
     });
 
     refreshTickets();
@@ -272,6 +277,7 @@ export default function TicketsPage() {
 
       <div className="space-y-3">
         {tickets.map((ticket, index) => {
+          const isActive = ticket.status === "active";
           const available =
             ticket.stock === null ? (
               <Infinity size={16} />
@@ -364,10 +370,21 @@ export default function TicketsPage() {
           return (
             <div
               key={ticket.id}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between"
+              className={`bg-zinc-900 border rounded-xl p-4 flex items-center justify-between ${
+                isActive
+                  ? "border-zinc-800"
+                  : "border-zinc-800/60 opacity-60"
+              }`}
             >
               <div>
-                <div className="font-medium text-white">{ticket.name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-white">{ticket.name}</div>
+                  {!isActive && (
+                    <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+                      Inactiva
+                    </span>
+                  )}
+                </div>
 
                 {ticket.description && (
                   <div className="text-sm text-zinc-400">
@@ -413,10 +430,20 @@ export default function TicketsPage() {
                 </button>
 
                 <button
-                  onClick={() => deleteTicket(ticket.id)}
-                  className="text-zinc-500 hover:text-red-400"
+                  onClick={() => updateTicketStatus(ticket.id, ticket.status)}
+                  className="text-zinc-500 hover:text-purple-400"
+                  aria-label={
+                    isActive
+                      ? "Desactivar tipo de entrada"
+                      : "Activar tipo de entrada"
+                  }
+                  title={
+                    isActive
+                      ? "Desactivar tipo de entrada"
+                      : "Activar tipo de entrada"
+                  }
                 >
-                  <Trash2 size={16} />
+                  {isActive ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>

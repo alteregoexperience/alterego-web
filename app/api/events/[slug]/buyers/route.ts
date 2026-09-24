@@ -49,6 +49,7 @@ export async function GET(
     .from("events")
     .select("id, title")
     .eq("slug", slug)
+    .is("deleted_at", null)
     .single();
 
   if (eventError || !event) {

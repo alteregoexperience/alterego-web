@@ -47,6 +47,7 @@ export default function TicketsSection({ event }: { event: Event }) {
         .from("event_ticket_types")
         .select("*")
         .eq("event_id", event.id)
+        .eq("status", "active")
         .order("order_index", { ascending: true });
 
       setTickets(data || []);

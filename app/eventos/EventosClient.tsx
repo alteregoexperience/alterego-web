@@ -32,6 +32,14 @@ function formatEventTime(value: string) {
   });
 }
 
+function escapeIcsText(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\r?\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
 function getSaleState(event: Event) {
   const now = new Date();
   const saleStart = event.ticket_sales_start_at
@@ -70,9 +78,9 @@ function createCalendarHref(event: Event) {
     `DTSTAMP:${toIcsDate(new Date())}`,
     `DTSTART:${toIcsDate(start)}`,
     `DTEND:${toIcsDate(end)}`,
-    `SUMMARY:${event.title}`,
-    `LOCATION:${event.location ?? ""}`,
-    `DESCRIPTION:${event.description ?? "ALTER EGO Experience"}`,
+    `SUMMARY:${escapeIcsText(event.title)}`,
+    `LOCATION:${escapeIcsText(event.location ?? "")}`,
+    `DESCRIPTION:${escapeIcsText(event.description ?? "ALTER EGO Experience")}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ];
@@ -274,7 +282,7 @@ function EventTile({
           </p>
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+        <div className="relative grid grid-cols-[1fr_auto_auto] gap-2">
           <button
             type="button"
             onClick={onOpen}
@@ -305,7 +313,7 @@ function CalendarMenu({
   variant?: "icon" | "wide";
 }) {
   return (
-    <details className="relative">
+    <details className="static sm:relative">
       <summary
         aria-label="Añadir al calendario"
         className={`flex cursor-pointer list-none items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-sm text-white transition hover:bg-white/15 [&::-webkit-details-marker]:hidden ${
@@ -316,7 +324,7 @@ function CalendarMenu({
         {variant === "wide" && "Calendario"}
       </summary>
 
-      <div className="absolute right-0 top-12 z-20 w-56 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-xl">
+      <div className="absolute bottom-12 right-0 z-20 w-56 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-xl sm:bottom-auto sm:top-12 sm:max-w-none">
         <a
           href={createGoogleCalendarHref(event)}
           target="_blank"

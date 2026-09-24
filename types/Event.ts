@@ -11,6 +11,7 @@ export type Event = {
   is_visible: boolean | null;
   created_at: string | null;
   ticket_sales_start_at: string | null;
+  deleted_at: string | null;
 };
 
 export interface EventListItem {
