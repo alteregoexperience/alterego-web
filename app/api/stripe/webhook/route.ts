@@ -2,7 +2,6 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { handleSuccessfulPurchase } from "@/lib/handleSuccessfulPurchase";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -62,18 +61,6 @@ export async function POST(req: Request) {
     }
 
     try {
-      // evitar duplicados
-      const { data: existing } = await supabaseAdmin
-        .from("orders")
-        .select("id")
-        .eq("stripe_checkout_session_id", sessionId)
-        .maybeSingle();
-
-      if (existing) {
-        console.log("Ya procesado:", sessionId);
-        return new Response("ok", { status: 200 });
-      }
-
       await handleSuccessfulPurchase({
         eventId: metadata.eventId,
         buyer: {
@@ -90,7 +77,7 @@ export async function POST(req: Request) {
       console.log("Compra procesada:", sessionId);
     } catch (err) {
       console.error("Error procesando compra:", err);
-      return new Response("Error handled", { status: 200 });
+      return new Response("Error processing purchase", { status: 500 });
     }
   }
 

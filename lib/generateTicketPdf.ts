@@ -17,6 +17,7 @@ type Params = {
   ticketType: string;
   ticketNumber: number;
   totalTickets: number;
+  documentDate?: Date;
 };
 
 type TextWidthFont = {
@@ -63,8 +64,14 @@ export async function generateTicketPdf({
   ticketType,
   ticketNumber,
   totalTickets,
+  documentDate,
 }: Params) {
   const pdf = await PDFDocument.create();
+
+  if (documentDate && !Number.isNaN(documentDate.getTime())) {
+    pdf.setCreationDate(documentDate);
+    pdf.setModificationDate(documentDate);
+  }
 
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);

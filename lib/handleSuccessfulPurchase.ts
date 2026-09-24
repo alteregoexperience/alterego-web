@@ -1,9 +1,46 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { PurchasePayload, Ticket } from "@/types/Ticket";
-import { resend } from "@/lib/resend";
 import { renderPurchaseEmail } from "@/lib/emailPurchaseTemplate";
-import { generateTicketPdf } from "@/lib/generateTicketPdf";
 import { formatTicketEventDateTime } from "@/lib/formatTicketEventDateTime";
+import { generateTicketPdf } from "@/lib/generateTicketPdf";
+import { resend } from "@/lib/resend";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { PurchasePayload } from "@/types/Ticket";
+
+type FulfilledOrder = {
+  id: string;
+  created_at: string;
+  fulfilled_at: string | null;
+};
+
+type FulfilledTicket = {
+  id: string;
+  order_id: string;
+  event_id: string;
+  ticket_type_id: string;
+  qr_code: string;
+  created_at: string;
+};
+
+type FulfillmentResult = {
+  order: FulfilledOrder;
+  tickets: FulfilledTicket[];
+};
+
+function isFulfillmentResult(value: unknown): value is FulfillmentResult {
+  if (!value || typeof value !== "object") return false;
+
+  const result = value as Partial<FulfillmentResult>;
+
+  return (
+    Boolean(result.order?.id) &&
+    Array.isArray(result.tickets) &&
+    result.tickets.every(
+      (ticket) =>
+        Boolean(ticket?.id) &&
+        Boolean(ticket?.ticket_type_id) &&
+        Boolean(ticket?.qr_code),
+    )
+  );
+}
 
 export async function handleSuccessfulPurchase({
   eventId,
@@ -20,146 +57,101 @@ export async function handleSuccessfulPurchase({
       )
     : [];
 
-  function calculateAge(birthdate: string) {
+  function calculateAge(value: string) {
     const today = new Date();
-    const birth = new Date(birthdate);
+    const birth = new Date(value);
 
     let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
+    const month = today.getMonth() - birth.getMonth();
 
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    if (
+      month < 0 ||
+      (month === 0 && today.getDate() < birth.getDate())
+    ) {
       age--;
     }
 
     return age;
   }
 
-  // seguridad extra
   if (calculateAge(birthdate) < 18) {
     throw new Error("Menor de edad");
   }
 
-  // obtener tickets
-  const ticketTypeIds = items.map((i) => i.ticketTypeId);
-
-  const { data: ticketTypes, error: ticketError } = await supabaseAdmin
-    .from("event_ticket_types")
-    .select("*")
-    .in("id", ticketTypeIds);
-
-  if (ticketError || !ticketTypes) {
-    throw new Error("Error obteniendo tickets");
+  if (
+    !eventId ||
+    !sessionId ||
+    !buyerName ||
+    !birthdate ||
+    !email ||
+    !phone ||
+    !items.length ||
+    items.some(
+      (item) =>
+        !item.ticketTypeId ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity <= 0,
+    )
+  ) {
+    throw new Error("Datos de compra no validos");
   }
 
-  // validar stock
-  for (const item of items) {
-    const ticket = ticketTypes.find((t) => t.id === item.ticketTypeId);
+  // La RPC ejecuta order, tickets y sold en una sola transaccion y devuelve
+  // los registros existentes cuando Stripe reintenta la misma sesion.
+  const { data: fulfillment, error: fulfillmentError } =
+    await supabaseAdmin.rpc("fulfill_stripe_purchase", {
+      p_event_id: eventId,
+      p_buyer_name: buyerName,
+      p_buyer_birthdate: birthdate,
+      p_buyer_email: email,
+      p_buyer_phone: phone,
+      p_stripe_checkout_session_id: sessionId,
+      p_items: items,
+    });
 
-    if (!ticket) continue;
-
-    if (ticket.stock !== null) {
-      const available = ticket.stock - (ticket.sold || 0);
-
-      if (item.quantity > available) {
-        throw new Error("Stock insuficiente");
-      }
-    }
+  if (fulfillmentError || !isFulfillmentResult(fulfillment)) {
+    console.error("PURCHASE FULFILLMENT ERROR:", fulfillmentError);
+    throw new Error("Error completando la compra");
   }
 
-  // total
-  let total = 0;
-  const totalTickets = items.reduce((acc, item) => acc + item.quantity, 0);
+  const { order, tickets: insertedTickets } = fulfillment;
+  const ticketTypeIds = [...new Set(items.map((item) => item.ticketTypeId))];
+
+  const [eventResult, ticketTypesResult] = await Promise.all([
+    supabaseAdmin
+      .from("events")
+      .select("title, location, starts_at, ends_at")
+      .eq("id", eventId)
+      .single(),
+    supabaseAdmin
+      .from("event_ticket_types")
+      .select("id, name, price")
+      .in("id", ticketTypeIds),
+  ]);
+
+  if (eventResult.error || !eventResult.data) {
+    throw new Error("Error obteniendo el evento para las entradas");
+  }
+
+  if (ticketTypesResult.error || !ticketTypesResult.data) {
+    throw new Error("Error obteniendo los tipos de entrada");
+  }
+
+  const event = eventResult.data;
+  const ticketTypes = ticketTypesResult.data;
+  const eventName = event.title ?? "ALTER EGO";
+  const eventLocation = event.location ?? "";
+  const { eventDate, eventTime } = formatTicketEventDateTime(
+    event.starts_at,
+    event.ends_at,
+  );
   const ticketHolderNames = Array.from(
-    { length: totalTickets },
+    { length: insertedTickets.length },
     (_, index) =>
       index === 0 ? buyerName : normalizedAttendeeNames[index] || buyerName,
   );
+  const documentDate = new Date(order.fulfilled_at ?? order.created_at);
 
-  for (const item of items) {
-    const ticket = ticketTypes.find((t) => t.id === item.ticketTypeId);
-    if (!ticket) continue;
-
-    total += ticket.price * item.quantity;
-  }
-
-  // INSERT CORRECTO
-  const { data: order, error: orderError } = await supabaseAdmin
-    .from("orders")
-    .insert({
-      event_id: eventId,
-      buyer_name: buyerName,
-      buyer_birthdate: birthdate,
-      buyer_email: email,
-      buyer_phone: phone,
-      total_amount: total,
-      status: "paid",
-      stripe_checkout_session_id: sessionId,
-      stripe_session_id: sessionId,
-      fulfilled_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (orderError || !order) {
-    console.error("ORDER ERROR:", orderError);
-    throw new Error("Error creando order");
-  }
-
-  const { data: event } = await supabaseAdmin
-    .from("events")
-    .select("title, location, starts_at, ends_at")
-    .eq("id", eventId)
-    .single();
-  const eventName = event?.title ?? "ALTER EGO";
-  const eventLocation = event?.location ?? "";
-  const { eventDate, eventTime } = formatTicketEventDateTime(
-    event?.starts_at,
-    event?.ends_at,
-  );
-
-  const ticketsToInsert: Omit<
-    Ticket,
-    "id" | "used" | "used_at" | "created_at"
-  >[] = [];
-
-  // generar tickets
-  for (const item of items) {
-    for (let i = 0; i < item.quantity; i++) {
-      ticketsToInsert.push({
-        order_id: order.id,
-        event_id: eventId,
-        ticket_type_id: item.ticketTypeId,
-        qr_code: crypto.randomUUID(),
-      });
-    }
-  }
-
-  const { data: insertedTickets, error: ticketsError } = await supabaseAdmin
-    .from("tickets")
-    .insert(ticketsToInsert)
-    .select();
-
-  if (ticketsError || !insertedTickets) {
-    throw new Error("Error creando tickets");
-  }
-
-  // actualizar sold
-  for (const item of items) {
-    const { error: incrementError } = await supabaseAdmin.rpc(
-      "increment_ticket_sold",
-      {
-        p_ticket_type_id: item.ticketTypeId,
-        p_qty: item.quantity,
-      },
-    );
-
-    if (incrementError) {
-      console.error("ERROR ACTUALIZANDO SOLD:", incrementError);
-      throw new Error("Error actualizando entradas vendidas");
-    }
-  }
-
-  // PDFs
   const sanitize = (text: string) =>
     text
       .toLowerCase()
@@ -171,10 +163,14 @@ export async function handleSuccessfulPurchase({
   const attachments = await Promise.all(
     insertedTickets.map(async (ticket, index) => {
       const ticketType = ticketTypes.find(
-        (t) => t.id === ticket.ticket_type_id,
+        (candidate) => candidate.id === ticket.ticket_type_id,
       );
-      const ticketHolderName = ticketHolderNames[index] || buyerName;
 
+      if (!ticketType) {
+        throw new Error("Tipo de entrada no encontrado para el PDF");
+      }
+
+      const ticketHolderName = ticketHolderNames[index] || buyerName;
       const pdfBytes = await generateTicketPdf({
         ticketId: ticket.qr_code,
         buyerName: ticketHolderName,
@@ -186,10 +182,11 @@ export async function handleSuccessfulPurchase({
         eventLocation,
         eventDate,
         eventTime,
-        price: ticketType?.price || 0,
-        ticketType: ticketType?.name || "",
+        price: Number(ticketType.price ?? 0),
+        ticketType: ticketType.name ?? "",
         ticketNumber: index + 1,
         totalTickets: insertedTickets.length,
+        documentDate,
       });
 
       return {
@@ -199,14 +196,23 @@ export async function handleSuccessfulPurchase({
     }),
   );
 
-  // email
-  await resend.emails.send({
-    from: "ALTER EGO <tickets@alteregoexperience.org>",
-    to: email,
-    subject: "ALTER EGO - Tus entradas",
-    html: renderPurchaseEmail({ name: buyerName }),
-    attachments,
-  });
+  const { error: emailError } = await resend.emails.send(
+    {
+      from: "ALTER EGO <tickets@alteregoexperience.org>",
+      to: email,
+      subject: "ALTER EGO - Tus entradas",
+      html: renderPurchaseEmail({ name: buyerName }),
+      attachments,
+    },
+    {
+      idempotencyKey: `stripe-checkout-${sessionId}`,
+    },
+  );
+
+  if (emailError) {
+    console.error("PURCHASE EMAIL ERROR:", emailError);
+    throw new Error("Error enviando las entradas");
+  }
 
   return order;
 }
