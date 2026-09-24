@@ -292,7 +292,7 @@ export default function TicketsSection({ event }: { event: Event }) {
 
           const soldOut = available !== null && available <= 0;
           const lowStock =
-            available !== null && available > 0 && available < 50;
+            available !== null && available > 0 && available < 120;
 
           return (
             <div

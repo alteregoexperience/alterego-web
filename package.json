@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit:historical-ticket-gaps": "node --env-file=.env.production --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/audit-historical-ticket-gaps.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
