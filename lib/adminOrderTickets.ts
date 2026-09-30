@@ -15,6 +15,7 @@ type TicketTypeRelation = {
 type TicketRow = {
   id: string;
   qr_code: string;
+  holder_name: string | null;
   used: boolean;
   used_at: string | null;
   created_at: string;
@@ -121,6 +122,7 @@ export async function getOrderTicketDetails(orderId: string) {
       `
       id,
       qr_code,
+      holder_name,
       used,
       used_at,
       created_at,
@@ -139,7 +141,12 @@ export async function getOrderTicketDetails(orderId: string) {
   }
 
   const ticketRows = (tickets ?? []) as unknown as TicketRow[];
-  const attendeeNames = await getAttendeeNames(order.stripe_checkout_session_id);
+  const needsLegacyAttendeeNames = ticketRows.some(
+    (ticket) => !ticket.holder_name?.trim(),
+  );
+  const attendeeNames = needsLegacyAttendeeNames
+    ? await getAttendeeNames(order.stripe_checkout_session_id)
+    : [];
 
   return {
     order,
@@ -147,9 +154,10 @@ export async function getOrderTicketDetails(orderId: string) {
     tickets: ticketRows.map((ticket, index) => {
       const ticketType = firstRelation(ticket.event_ticket_types);
       const holderName =
-        index === 0
+        ticket.holder_name?.trim() ||
+        (index === 0
           ? order.buyer_name
-          : attendeeNames[index]?.trim() || order.buyer_name;
+          : attendeeNames[index]?.trim() || order.buyer_name);
 
       return {
         id: ticket.id,
@@ -221,6 +229,107 @@ export async function generateExistingTicketPdf(ticketId: string) {
   }
 
   return generateTicketPdfFromOrder(details, detail);
+}
+
+function normalizeHolderName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function isSameHolderName(left: string, right: string) {
+  return (
+    normalizeHolderName(left).localeCompare(normalizeHolderName(right), "es", {
+      sensitivity: "base",
+    }) === 0
+  );
+}
+
+export async function changeTicketHolder({
+  ticketId,
+  eventSlug,
+  currentName,
+  newName,
+}: {
+  ticketId: string;
+  eventSlug: string;
+  currentName: string;
+  newName: string;
+}) {
+  const normalizedCurrentName = normalizeHolderName(currentName);
+  const normalizedNewName = normalizeHolderName(newName);
+
+  if (!normalizedCurrentName || !normalizedNewName) {
+    throw new Error("El nombre actual y el nuevo son obligatorios");
+  }
+
+  if (normalizedCurrentName.length > 160 || normalizedNewName.length > 160) {
+    throw new Error("El nombre no puede superar los 160 caracteres");
+  }
+
+  if (isSameHolderName(normalizedCurrentName, normalizedNewName)) {
+    throw new Error("El nombre nuevo debe ser distinto al actual");
+  }
+
+  const { data: ticket, error: ticketError } = await supabaseAdmin
+    .from("tickets")
+    .select("id, order_id, event_id, used")
+    .eq("id", ticketId)
+    .single();
+
+  if (ticketError || !ticket) {
+    throw new Error("Entrada no encontrada");
+  }
+
+  if (ticket.used) {
+    throw new Error("No se puede cambiar el nombre de una entrada ya validada");
+  }
+
+  const { data: event, error: eventError } = await supabaseAdmin
+    .from("events")
+    .select("id")
+    .eq("id", ticket.event_id)
+    .eq("slug", eventSlug)
+    .is("deleted_at", null)
+    .single();
+
+  if (eventError || !event) {
+    throw new Error("La entrada no pertenece a este evento");
+  }
+
+  const details = await getOrderTicketDetails(ticket.order_id);
+  const detail = details.tickets.find((item) => item.id === ticketId);
+
+  if (!detail || !isSameHolderName(detail.holderName, normalizedCurrentName)) {
+    throw new Error(
+      "El nombre actual no coincide. Recarga la compra e inténtalo de nuevo",
+    );
+  }
+
+  const updatedDetail = {
+    ...detail,
+    holderName: normalizedNewName,
+  };
+  const generatedTicket = await generateTicketPdfFromOrder(
+    details,
+    updatedDetail,
+  );
+
+  const { data: updatedTicket, error: updateError } = await supabaseAdmin
+    .from("tickets")
+    .update({ holder_name: normalizedNewName })
+    .eq("id", ticketId)
+    .eq("event_id", event.id)
+    .eq("used", false)
+    .select("id")
+    .maybeSingle();
+
+  if (updateError || !updatedTicket) {
+    throw new Error("No se pudo guardar el nuevo titular");
+  }
+
+  return {
+    ...generatedTicket,
+    holderName: normalizedNewName,
+  };
 }
 
 export async function resendOrderTickets(orderId: string) {

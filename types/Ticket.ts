@@ -37,6 +37,7 @@ export type Ticket = {
   order_id: string;
   event_id: string;
   ticket_type_id: string;
+  holder_name: string | null;
 
   qr_code: string;
 

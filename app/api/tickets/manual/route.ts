@@ -129,6 +129,7 @@ export async function POST(req: Request) {
       order_id: order.id,
       event_id: eventId,
       ticket_type_id: ticketTypeId,
+      holder_name: buyerName,
       qr_code: crypto.randomUUID(),
     }));
 

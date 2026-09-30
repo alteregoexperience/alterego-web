@@ -12,6 +12,7 @@ type TicketRow = {
   id: string;
   event_id: string;
   qr_code: string;
+  holder_name: string | null;
   used: boolean;
   used_at: string | null;
   event_ticket_types: {
@@ -54,7 +55,7 @@ function ticketInfo(ticket: TicketRow, usedAt?: string | null) {
     qrCode: ticket.qr_code,
     usedAt: usedAt ?? ticket.used_at,
     ticketType: ticket.event_ticket_types?.name ?? "Entrada",
-    buyerName: ticket.orders?.buyer_name ?? "",
+    buyerName: ticket.holder_name?.trim() || ticket.orders?.buyer_name || "",
     buyerEmail: ticket.orders?.buyer_email ?? "",
     buyerPhone: ticket.orders?.buyer_phone ?? "",
   };
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
       id,
       event_id,
       qr_code,
+      holder_name,
       used,
       used_at,
       event_ticket_types ( name ),
@@ -148,6 +150,7 @@ export async function POST(req: Request) {
         id,
         event_id,
         qr_code,
+        holder_name,
         used,
         used_at,
         event_ticket_types ( name ),

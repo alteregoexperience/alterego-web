@@ -150,6 +150,25 @@ export async function handleSuccessfulPurchase({
     (_, index) =>
       index === 0 ? buyerName : normalizedAttendeeNames[index] || buyerName,
   );
+
+  const holderUpdates = await Promise.all(
+    insertedTickets.map((ticket, index) =>
+      supabaseAdmin
+        .from("tickets")
+        .update({ holder_name: ticketHolderNames[index] || buyerName })
+        .eq("id", ticket.id)
+        .is("holder_name", null),
+    ),
+  );
+
+  if (holderUpdates.some((result) => result.error)) {
+    console.error(
+      "TICKET HOLDER UPDATE ERROR:",
+      holderUpdates.find((result) => result.error)?.error,
+    );
+    throw new Error("Error guardando los titulares de las entradas");
+  }
+
   const documentDate = new Date(order.fulfilled_at ?? order.created_at);
 
   const sanitize = (text: string) =>

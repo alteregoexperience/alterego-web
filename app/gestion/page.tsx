@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   UserRound,
+  UserRoundPen,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -313,6 +314,13 @@ function EventCard({ event }: { event: EventListItem }) {
                   label="Entradas manuales"
                   onClick={() =>
                     router.push(`/gestion/${event.slug}/entradas-manuales`)
+                  }
+                />
+                <SecondaryActionButton
+                  icon={<UserRoundPen size={15} />}
+                  label="Cambiar nombre"
+                  onClick={() =>
+                    router.push(`/gestion/${event.slug}/cambiar-nombre`)
                   }
                 />
                 <SecondaryActionButton

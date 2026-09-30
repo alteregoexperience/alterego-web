@@ -143,6 +143,7 @@ export async function POST(req: Request) {
           order_id: order.id,
           event_id: eventId,
           ticket_type_id: item.ticketTypeId,
+          holder_name: name.trim().replace(/\s+/g, " "),
           qr_code: crypto.randomUUID(),
         });
       }
