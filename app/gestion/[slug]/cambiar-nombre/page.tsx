@@ -29,6 +29,17 @@ type BuyersResponse = {
     title: string;
   };
   buyers: Buyer[];
+  ticketHolders: TicketHolderSearchItem[];
+};
+
+type TicketHolderSearchItem = {
+  ticketId: string;
+  orderId: string;
+  holderName: string;
+  ticketType: string;
+  ticketNumber: number;
+  used: boolean;
+  buyerName: string;
 };
 
 type TicketDetail = {
@@ -55,11 +66,23 @@ function downloadPdf(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .trim()
+    .replace(/\s+/g, " ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es");
+}
+
 export default function CambiarNombrePage() {
   const params = useParams();
   const slug = params?.slug as string;
 
   const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [ticketHolders, setTicketHolders] = useState<TicketHolderSearchItem[]>(
+    [],
+  );
   const [eventTitle, setEventTitle] = useState("");
   const [search, setSearch] = useState("");
   const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
@@ -81,9 +104,10 @@ export default function CambiarNombrePage() {
       setError("");
 
       try {
-        const response = await fetch(`/api/events/${slug}/buyers`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/events/${slug}/buyers?includeTicketHolders=1`,
+          { cache: "no-store" },
+        );
         const data = (await response.json().catch(() => null)) as
           | BuyersResponse
           | { error?: string }
@@ -100,6 +124,7 @@ export default function CambiarNombrePage() {
         const payload = data as BuyersResponse;
 
         setBuyers(payload.buyers ?? []);
+        setTicketHolders(payload.ticketHolders ?? []);
         setEventTitle(payload.event.title);
       } catch (loadError) {
         setError(
@@ -116,22 +141,37 @@ export default function CambiarNombrePage() {
   }, [slug]);
 
   const filteredBuyers = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase("es");
+    const term = normalizeSearchText(search.trim());
 
     if (!term) return buyers;
 
-    return buyers.filter((buyer) =>
-      `${buyer.buyer_name} ${buyer.buyer_email} ${buyer.buyer_phone}`
-        .toLocaleLowerCase("es")
-        .includes(term),
-    );
+    return buyers.filter((buyer) => {
+      const buyerSearchText = `${buyer.buyer_name} ${buyer.buyer_email} ${buyer.buyer_phone}`;
+
+      return normalizeSearchText(buyerSearchText).includes(term);
+    });
   }, [buyers, search]);
+
+  const filteredTicketHolders = useMemo(() => {
+    const term = normalizeSearchText(search.trim());
+
+    if (!term) return [];
+
+    return ticketHolders.filter((ticket) =>
+      normalizeSearchText(ticket.holderName).includes(term),
+    );
+  }, [search, ticketHolders]);
+
+  const buyersById = useMemo(
+    () => new Map(buyers.map((buyer) => [buyer.id, buyer])),
+    [buyers],
+  );
 
   const selectedTicket = tickets.find(
     (ticket) => ticket.id === selectedTicketId,
   );
 
-  const selectBuyer = async (buyer: Buyer) => {
+  const selectBuyer = async (buyer: Buyer, ticketId?: string) => {
     setSelectedBuyer(buyer);
     setTickets([]);
     setSelectedTicketId("");
@@ -158,7 +198,18 @@ export default function CambiarNombrePage() {
         );
       }
 
-      setTickets((data as TicketsResponse).tickets ?? []);
+      const loadedTickets = (data as TicketsResponse).tickets ?? [];
+
+      setTickets(loadedTickets);
+
+      if (ticketId) {
+        const ticket = loadedTickets.find((item) => item.id === ticketId);
+
+        if (ticket && !ticket.used) {
+          setSelectedTicketId(ticket.id);
+          setCurrentName(ticket.holderName);
+        }
+      }
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -224,6 +275,13 @@ export default function CambiarNombrePage() {
             : ticket,
         ),
       );
+      setTicketHolders((currentTickets) =>
+        currentTickets.map((ticket) =>
+          ticket.ticketId === selectedTicket.id
+            ? { ...ticket, holderName: normalizedNewName }
+            : ticket,
+        ),
+      );
       setCurrentName(normalizedNewName);
       setNewName("");
       setSuccess(
@@ -272,7 +330,7 @@ export default function CambiarNombrePage() {
                 1
               </span>
               <CardTitle className="text-lg text-white">
-                Localiza la compra
+                Localiza la compra o entrada
               </CardTitle>
             </div>
 
@@ -281,7 +339,7 @@ export default function CambiarNombrePage() {
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Nombre del comprador, email o teléfono"
+                placeholder="Comprador, titular, email o teléfono"
                 className="h-11 border-zinc-700 bg-zinc-950 pl-9 text-white placeholder:text-zinc-500"
               />
             </div>
@@ -297,12 +355,64 @@ export default function CambiarNombrePage() {
               <p className="py-10 text-center text-sm text-zinc-500">
                 Este evento todavía no tiene compras con entradas.
               </p>
-            ) : filteredBuyers.length === 0 ? (
+            ) : Boolean(search.trim()) &&
+              filteredBuyers.length === 0 &&
+              filteredTicketHolders.length === 0 ? (
               <p className="py-10 text-center text-sm text-zinc-500">
                 No hay resultados para esta búsqueda.
               </p>
             ) : (
               <div className="max-h-[430px] space-y-2 overflow-y-auto pr-1">
+                {filteredTicketHolders.length > 0 && (
+                  <div className="space-y-2 pb-2">
+                    <p className="px-1 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
+                      Entradas por titular
+                    </p>
+
+                    {filteredTicketHolders.map((ticket) => {
+                      const buyer = buyersById.get(ticket.orderId);
+
+                      if (!buyer) return null;
+
+                      return (
+                        <button
+                          key={ticket.ticketId}
+                          type="button"
+                          onClick={() => selectBuyer(buyer, ticket.ticketId)}
+                          className="w-full rounded-xl border border-purple-500/35 bg-purple-500/10 p-3 text-left transition hover:border-purple-500/60 hover:bg-purple-500/15"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <Ticket className="h-4 w-4 shrink-0 text-purple-400" />
+                                <p className="truncate font-medium text-white">
+                                  {ticket.holderName}
+                                </p>
+                              </div>
+                              <p className="mt-1 truncate text-xs text-zinc-400">
+                                Compra de {ticket.buyerName} · #{ticket.ticketNumber} ·{" "}
+                                {ticket.ticketType}
+                              </p>
+                            </div>
+
+                            {ticket.used && (
+                              <span className="shrink-0 rounded-full border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-400">
+                                Validada
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {filteredBuyers.length > 0 && Boolean(search.trim()) && (
+                  <p className="px-1 pt-2 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">
+                    Compras
+                  </p>
+                )}
+
                 {filteredBuyers.map((buyer) => {
                   const isSelected = selectedBuyer?.id === buyer.id;
 

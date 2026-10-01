@@ -67,7 +67,9 @@ function parseAttendeeNames(metadata: Stripe.Metadata | null) {
   );
 }
 
-async function getAttendeeNames(stripeCheckoutSessionId: string | null) {
+export async function getAttendeeNames(
+  stripeCheckoutSessionId: string | null,
+) {
   if (!stripeCheckoutSessionId) return [];
 
   try {
