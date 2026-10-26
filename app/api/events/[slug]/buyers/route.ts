@@ -37,6 +37,8 @@ type BuyerOrderRow = {
   status: string;
   created_at: string;
   fulfilled_at: string | null;
+  ticket_email_pending: boolean;
+  fulfillment_error: string | null;
   stripe_checkout_session_id: string | null;
 };
 
@@ -191,6 +193,8 @@ export async function GET(
       status,
       created_at,
       fulfilled_at,
+      ticket_email_pending,
+      fulfillment_error,
       stripe_checkout_session_id
     `,
     )

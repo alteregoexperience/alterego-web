@@ -39,6 +39,8 @@ type Buyer = {
   buyer_email: string;
   buyer_phone: string;
   total_amount: number;
+  ticket_email_pending?: boolean;
+  fulfillment_error?: string | null;
   status: string;
   created_at: string;
   fulfilled_at: string | null;
@@ -431,6 +433,13 @@ export default function CompradoresPage() {
                       <div className="mt-1 text-xs text-zinc-500">
                         {buyer.used_ticket_count} validadas
                       </div>
+                      {buyer.ticket_email_pending && (
+                        <p className="mt-1 text-xs text-amber-300">
+                          {buyer.fulfillment_error
+                            ? "Emisión o envío pendiente de reintento"
+                            : "Preparando entradas y correo"}
+                        </p>
+                      )}
                       <div className="mt-2 flex flex-wrap gap-1">
                         {buyer.ticket_types.map((ticketType) => (
                           <span
