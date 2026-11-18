@@ -45,7 +45,7 @@ export async function GET(
     );
   }
 
-  const { data, error } = await supabaseAdmin
+  const query = () => supabaseAdmin
     .from("event_participants")
     .select(
       `
@@ -59,13 +59,22 @@ export async function GET(
     )
     .eq("event_id", event.id)
     .order("points", { ascending: false })
-    .limit(500);
+    .order("id", { ascending: true });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const data: EventParticipantRow[] = [];
+  // La lista de gestión debe mostrar también los imports de más de 500 nombres.
+  const pageSize = order === "name" ? 1000 : 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await query().range(offset, offset + pageSize - 1);
+    if (result.error) {
+      return NextResponse.json({ error: result.error.message }, { status: 500 });
+    }
+    const rows = (result.data ?? []) as unknown as EventParticipantRow[];
+    data.push(...rows);
+    if (order !== "name" || rows.length < pageSize) break;
   }
 
-  const participants = ((data ?? []) as unknown as EventParticipantRow[])
+  const participants = data
     .map((row) => {
       const participant = firstRelation(row.participant);
 

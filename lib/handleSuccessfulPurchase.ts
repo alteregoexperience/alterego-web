@@ -93,6 +93,14 @@ export async function fulfillPaidPurchase(
 ): Promise<PurchaseResult> {
   const { eventId, buyer, items, attendeeNames = [], sessionId } = purchase;
   const order = await registerPaidOrder(purchase);
+  // También se comprueba en reintentos de pedidos ya entregados.
+  const { error: participantError } = await supabaseAdmin.rpc(
+    "ensure_order_buyer_participant",
+    { p_order_id: order.id },
+  );
+  if (participantError) {
+    throw new Error(`Error añadiendo el comprador al evento: ${participantError.message}`);
+  }
   const expectedTickets = items.reduce((sum, item) => sum + item.quantity, 0);
   const hasAllTickets = order.tickets?.[0]?.count === expectedTickets;
   if (order.ticket_email_sent_at && hasAllTickets)

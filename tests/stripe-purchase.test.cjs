@@ -55,6 +55,7 @@ function fixture({
   rpcFailures = 0,
   emailFailures = 0,
   pauseEmail = null,
+  participantFailures = 0,
 } = {}) {
   const state = {
     order: null,
@@ -63,6 +64,7 @@ function fixture({
     sends: [],
     pdfs: [],
     rpcCalls: 0,
+    participantCalls: [],
   };
   class Query {
     constructor(table) {
@@ -171,7 +173,15 @@ function fixture({
   }
   const db = {
     from: (table) => new Query(table),
-    rpc: async () => {
+    rpc: async (name, params) => {
+      if (name === "ensure_order_buyer_participant") {
+        state.participantCalls.push(params);
+        return {
+          data: null,
+          error: participantFailures-- > 0 ? { message: "Alta temporalmente indisponible" } : null,
+        };
+      }
+      assert.equal(name, "fulfill_stripe_purchase");
       state.rpcCalls++;
       if (rpcFailures-- > 0)
         return {
@@ -300,6 +310,40 @@ test("dos notificaciones concurrentes solo generan un envio", async () => {
   await first;
   assert.equal(state.sends.length, 1);
   assert.equal(state.tickets.length, 4);
+});
+
+test("el comprador se registra una vez por llamada, independientemente de las cuatro entradas", async () => {
+  const { state, api } = fixture();
+  await api.handleSuccessfulPurchase(purchase.sessionId);
+  assert.deepEqual(state.participantCalls, [{ p_order_id: state.order.id }]);
+  await api.handleSuccessfulPurchase(purchase.sessionId);
+  assert.equal(state.participantCalls.length, 2);
+  assert.equal(state.sold, 4);
+  assert.equal(state.sends.length, 1);
+});
+
+test("un fallo en el alta del comprador se puede reintentar sin duplicar entradas", async () => {
+  const { state, api } = fixture({ participantFailures: 1 });
+  await assert.rejects(api.handleSuccessfulPurchase(purchase.sessionId), /Alta temporalmente/);
+  assert.equal(state.order.ticket_email_pending, true);
+  assert.equal(state.sold, 0);
+  await api.handleSuccessfulPurchase(purchase.sessionId);
+  assert.equal(state.sold, 4);
+  assert.equal(state.sends.length, 1);
+});
+
+test("una sesión sin pagar no registra participantes", async () => {
+  let writes = 0;
+  const api = load("lib/handleSuccessfulPurchase.ts", {
+    "@/lib/supabaseAdmin": { supabaseAdmin: { rpc: async () => writes++ } },
+    "@/lib/stripePurchase": { getPaidStripePurchase: async () => null },
+    "@/lib/emailPurchaseTemplate": {},
+    "@/lib/formatTicketEventDateTime": {},
+    "@/lib/generateTicketPdf": {},
+    "@/lib/resend": {},
+  });
+  assert.equal((await api.handleSuccessfulPurchase(purchase.sessionId)).status, "unpaid");
+  assert.equal(writes, 0);
 });
 
 test("las compras historicas completas no se reenvian en masa", async () => {

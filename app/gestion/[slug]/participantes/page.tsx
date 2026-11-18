@@ -13,37 +13,43 @@ import { Plus } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import { Participant } from "@/types/Participant";
+import { ImportParticipantsButton } from "@/components/ImportParticipantsButton";
 
 export default function ParticipantesPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const [eventId, setEventId] = useState<string | null>(null);
+  const [eventContext, setEventContext] = useState<{ id: string; slug: string } | null>(null);
+  const eventId = eventContext?.slug === slug ? eventContext.id : null;
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [search, setSearch] = useState("");
+  const [importVersion, setImportVersion] = useState(0);
 
   const router = useRouter();
   const updatingRef = useRef(false);
 
   useEffect(() => {
     if (!slug) return;
+    let active = true;
 
     const fetchParticipants = async () => {
       const response = await fetch(`/api/events/${slug}/participants?order=name`, {
         cache: "no-store",
       });
       const data = await response.json();
+      if (!active) return;
 
       if (!response.ok) {
         console.error(data?.error || "Error cargando participantes");
         return;
       }
 
-      setEventId(data.eventId);
+      setEventContext({ id: data.eventId, slug });
       setParticipants(data.participants ?? []);
     };
 
     fetchParticipants();
-  }, [slug]);
+    return () => { active = false; };
+  }, [slug, importVersion]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -119,6 +125,12 @@ export default function ParticipantesPage() {
             >
               + Nuevo participante
             </Button>
+
+            <ImportParticipantsButton
+              key={slug}
+              eventId={eventId}
+              onImported={() => setImportVersion((version) => version + 1)}
+            />
 
             <Input
               placeholder="Buscar nombre o instagram..."
