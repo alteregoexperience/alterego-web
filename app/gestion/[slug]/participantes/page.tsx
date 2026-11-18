@@ -119,18 +119,20 @@ export default function ParticipantesPage() {
               Panel de participantes
             </CardTitle>
 
-            <Button
-              onClick={() => router.push(`/gestion/${slug}/nuevo-participante`)}
-              className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md"
-            >
-              + Nuevo participante
-            </Button>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <Button
+                onClick={() => router.push(`/gestion/${slug}/nuevo-participante`)}
+                className="h-11 min-w-0 flex-1 whitespace-normal bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm text-white shadow-md sm:flex-none"
+              >
+                + Nuevo participante
+              </Button>
 
-            <ImportParticipantsButton
-              key={slug}
-              eventId={eventId}
-              onImported={() => setImportVersion((version) => version + 1)}
-            />
+              <ImportParticipantsButton
+                key={slug}
+                eventId={eventId}
+                onImported={() => setImportVersion((version) => version + 1)}
+              />
+            </div>
 
             <Input
               placeholder="Buscar nombre o instagram..."

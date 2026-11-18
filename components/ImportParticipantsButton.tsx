@@ -82,10 +82,10 @@ export function ImportParticipantsButton({ eventId, onImported }: {
   }
 
   return (
-    <div>
+    <div className="min-w-0 flex-1 sm:flex-none">
       <input ref={inputRef} type="file" accept=".xlsx,.xls" className="hidden" aria-label="Archivo Excel de participantes" onChange={selectFile} />
       <Button ref={buttonRef} type="button" disabled={!eventId || busy || !!pending} onClick={() => inputRef.current?.click()}
-        className="min-h-11 w-full border-zinc-700 bg-zinc-950 text-white hover:bg-zinc-800 md:w-auto">
+        className="h-11 w-full whitespace-normal border-zinc-700 bg-zinc-950 text-xs sm:text-sm text-white hover:bg-zinc-800">
         <Upload aria-hidden="true" />
         {busy ? "Importando…" : "Importar Excel"}
       </Button>
